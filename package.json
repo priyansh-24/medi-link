@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://<your-username>.github.io/<repo-name>",
+  "homepage": "https://priyansh-24.github.io/medi-link",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -33,7 +33,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.19",
+    "vite": "^6.3.5",
     "vite-plugin-gh-pages": "^1.0.1"
   }
 }
