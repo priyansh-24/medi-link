@@ -3,6 +3,8 @@ import Layout from './Layout';
 import { Phone, Mail, MapPin, Activity, Edit2, Save } from 'lucide-react';
 import { auth, db } from './lib/Firebase'; 
 import { ref, set, get } from 'firebase/database';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+
 
 const PatientProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -19,9 +21,27 @@ const PatientProfile: React.FC = () => {
     allergies: '',
     chronicConditions: '',
     currentMedications: '',
+    photoURL: '',
   });
 
   const uid = auth.currentUser?.uid;
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uid) return;
+
+    const storage = getStorage();
+    const fileRef = storageRef(storage, `profilePhotos/${uid}/${file.name}`);
+
+    try {
+      await uploadBytes(fileRef, file);
+      const downloadURL = await getDownloadURL(fileRef);
+      setProfile(prev => ({ ...prev, photoURL: downloadURL }));
+    } catch (error) {
+      console.error("Photo upload error:", error);
+      alert("Failed to upload photo.");
+    }
+  };
 
   useEffect(() => {
     if (!uid) return;
@@ -69,13 +89,29 @@ const PatientProfile: React.FC = () => {
           <div className="bg-white shadow rounded-lg mb-6">
             <div className="px-6 py-8">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <img
-                    className="h-24 w-24 rounded-full"
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-                    alt="Profile"
-                  />
+                <div className="relative">
+                  {profile.photoURL ? (
+                    <img
+                      className="h-24 w-24 rounded-full object-cover"
+                      src={profile.photoURL}
+                      alt="Profile"
+                    />
+                  ) : (
+                    <div className="h-24 w-24 rounded-full bg-blue-500 text-white flex items-center justify-center text-2xl font-semibold">
+                      {profile.name ? profile.name[0].toUpperCase() : '?'}
+                    </div>
+                  )}
+                  {isEditing && (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="absolute bottom-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                      title="Upload Profile Photo"
+                    />
+                  )}
                 </div>
+
                 <div className="ml-6 flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
