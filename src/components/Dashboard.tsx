@@ -63,7 +63,7 @@ const Dashboard: React.FC = () => {
           }
 
           // Build today's medications
-          const meds = [];
+          const meds: React.SetStateAction<any[]> = [];
           active.forEach((p) => {
             const times = Array.isArray(p.schedule)
               ? p.schedule
