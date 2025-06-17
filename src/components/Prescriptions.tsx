@@ -4,9 +4,10 @@ import { FileText, Download, Printer, Save, Clock, AlertCircle, CheckCircle, Pil
 import { getDatabase, ref, onValue } from "firebase/database";
 import { useEffect } from "react";
 import { getAuth } from "firebase/auth";
+import { db } from './lib/Firebase';
 
 
-
+ 
 const Prescriptions: React.FC = () => {
   const [activeTab, setActiveTab] = useState('current');
   const [currentPrescriptions, setCurrentPrescriptions] = useState<any[]>([]);
@@ -69,20 +70,19 @@ const Prescriptions: React.FC = () => {
 
  
 
-  const handleDownload = (prescriptionId: string) => {
-    // Simulate download
-    console.log(`Downloading prescription ${prescriptionId}`);
-  };
+const handlePrint = () => window.print();
 
-  const handlePrint = (prescriptionId: string) => {
-    // Simulate print
-    window.print();
-  };
+const handleDownload = () => {
+  const blob = new Blob([JSON.stringify(medicationReminders, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'medication_reminders.json';
+  a.click();
+};
 
-  const handleSave = (prescriptionId: string) => {
-    // Simulate save
-    console.log(`Saving prescription ${prescriptionId}`);
-  };
 
   const prescriptions = activeTab === 'current' ? currentPrescriptions : pastPrescriptions;
 
@@ -204,25 +204,18 @@ const Prescriptions: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleDownload(prescription.id)}
+                        onClick={handleDownload}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
                         title="Download"
                       >
                         <Download className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handlePrint(prescription.id)}
+                        onClick={handlePrint}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
                         title="Print"
                       >
                         <Printer className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleSave(prescription.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
-                        title="Save"
-                      >
-                        <Save className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
