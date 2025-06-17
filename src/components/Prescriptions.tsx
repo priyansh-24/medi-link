@@ -11,8 +11,9 @@ const Prescriptions: React.FC = () => {
   const [activeTab, setActiveTab] = useState('current');
   const [currentPrescriptions, setCurrentPrescriptions] = useState<any[]>([]);
   const [pastPrescriptions, setPastPrescriptions] = useState<any[]>([]);
+  const [medicationReminders, setMedicationReminders] = useState<any[]>([]);
 
-  useEffect(() => {
+ useEffect(() => {
   const db = getDatabase();
   const auth = getAuth();
   const user = auth.currentUser;
@@ -27,6 +28,7 @@ const Prescriptions: React.FC = () => {
     const today = new Date();
     const current: any[] = [];
     const past: any[] = [];
+    const reminders: any[] = [];
 
     Object.entries(data).forEach(([id, prescription]: any) => {
       const expiry = new Date(prescription.expiryDate);
@@ -39,20 +41,33 @@ const Prescriptions: React.FC = () => {
         completedDate: !isActive ? expiry.toISOString().split("T")[0] : null
       };
 
-      isActive ? current.push(enriched) : past.push(enriched);
+      if (isActive) {
+        current.push(enriched);
+
+        // Collect today's reminders if 'schedule' is available
+        if (Array.isArray(prescription.schedule)) {
+          prescription.schedule.forEach((time: string) => {
+            reminders.push({
+              medication: `${prescription.medication} ${prescription.dosage}`,
+              time,
+              taken: false // Optional: You can load saved state from Firebase here
+            });
+          });
+        }
+      } else {
+        past.push(enriched);
+      }
     });
 
+    // Update state
     setCurrentPrescriptions(current);
     setPastPrescriptions(past);
+    setMedicationReminders(reminders);
   });
 }, []);
 
 
-  const medicationReminders = [
-    { medication: 'Lisinopril 10mg', time: '8:00 AM', taken: true },
-    { medication: 'Aspirin 81mg', time: '8:00 AM', taken: true },
-    { medication: 'Vitamin D3', time: '12:00 PM', taken: false },
-  ];
+ 
 
   const handleDownload = (prescriptionId: string) => {
     // Simulate download
@@ -79,46 +94,70 @@ const Prescriptions: React.FC = () => {
 
           {/* Today's Medication Reminders */}
           <div className="bg-white shadow rounded-lg mb-6">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <Clock className="h-5 w-5 mr-2 text-blue-500" />
-                Today's Medication Schedule
-              </h3>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {medicationReminders.map((reminder, index) => (
-                  <div
-                    key={index}
-                    className={`border-2 rounded-lg p-4 ${
-                      reminder.taken ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'
-                    }`}
+  <div className="px-6 py-4 border-b border-gray-200">
+    <h3 className="text-lg font-medium text-gray-900 flex items-center">
+      <Clock className="h-5 w-5 mr-2 text-blue-500" />
+      Today's Medication Schedule
+    </h3>
+  </div>
+  <div className="p-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {Object.entries(
+        medicationReminders.reduce((acc: any, reminder: any, index: number) => {
+          const key = reminder.medication;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push({ ...reminder, index });
+          return acc;
+        }, {})
+      ).map(([medication, reminders]: any) => (
+        <div
+          key={medication}
+          className={`border-2 rounded-lg p-4 ${
+            reminders.every((r: any) => r.taken)
+              ? 'border-green-200 bg-green-50'
+              : 'border-yellow-200 bg-yellow-50'
+          }`}
+        >
+          <p className="font-medium text-gray-900 mb-4">{medication}</p>
+          <div className="flex flex-wrap gap-4">
+            {reminders.map((reminder: any) => (
+              <div key={reminder.index} className="flex flex-col items-center gap-2">
+                <div
+                  className={`w-12 h-12 flex items-center justify-center rounded-full text-sm font-semibold shadow ${
+                    reminder.taken
+                      ? 'bg-green-100 text-green-600'
+                      : 'bg-yellow-100 text-yellow-600'
+                  }`}
+                >
+                  {reminder.taken ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <span className="block text-center">{reminder.time}</span>
+                  )}
+                </div>
+                {!reminder.taken && (
+                  <button
+                    onClick={() =>
+                      setMedicationReminders((prev: any[]) =>
+                        prev.map((r, i) =>
+                          i === reminder.index ? { ...r, taken: true } : r
+                        )
+                      )
+                    }
+                    className="bg-blue-600 text-white text-xs px-3 py-1 rounded-md hover:bg-blue-700 transition"
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">{reminder.medication}</p>
-                        <p className="text-sm text-gray-600">{reminder.time}</p>
-                      </div>
-                      <div className={`p-2 rounded-full ${
-                        reminder.taken ? 'bg-green-100' : 'bg-yellow-100'
-                      }`}>
-                        {reminder.taken ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <Clock className="h-5 w-5 text-yellow-600" />
-                        )}
-                      </div>
-                    </div>
-                    {!reminder.taken && (
-                      <button className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700">
-                        Mark as Taken
-                      </button>
-                    )}
-                  </div>
-                ))}
+                    Mark
+                  </button>
+                )}
               </div>
-            </div>
+            ))}
           </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
 
           {/* Prescription Tabs */}
           <div className="bg-white shadow rounded-lg">
@@ -233,7 +272,7 @@ const Prescriptions: React.FC = () => {
                         )}
                       </div>
                       <div className="flex space-x-2">
-                        {prescription.refillsLeft > 0 && (
+                        {prescription.refillsLeft >= 0 && (
                           <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
                             Request Refill
                           </button>
