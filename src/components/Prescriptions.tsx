@@ -1,73 +1,52 @@
 import React, { useState } from 'react';
 import Layout from './Layout';
 import { FileText, Download, Printer, Save, Clock, AlertCircle, CheckCircle, Pill } from 'lucide-react';
+import { getDatabase, ref, onValue } from "firebase/database";
+import { useEffect } from "react";
+import { getAuth } from "firebase/auth";
+
+
 
 const Prescriptions: React.FC = () => {
   const [activeTab, setActiveTab] = useState('current');
+  const [currentPrescriptions, setCurrentPrescriptions] = useState<any[]>([]);
+  const [pastPrescriptions, setPastPrescriptions] = useState<any[]>([]);
 
-  const currentPrescriptions = [
-    {
-      id: '1',
-      medication: 'Lisinopril',
-      dosage: '10mg',
-      frequency: 'Once daily',
-      doctor: 'Dr. Sarah Johnson',
-      prescribedDate: '2024-01-15',
-      expiryDate: '2024-07-15',
-      refillsLeft: 3,
-      instructions: 'Take with food. Monitor blood pressure regularly.',
-      status: 'active'
-    },
-    {
-      id: '2',
-      medication: 'Aspirin',
-      dosage: '81mg',
-      frequency: 'Once daily',
-      doctor: 'Dr. Sarah Johnson',
-      prescribedDate: '2024-01-15',
-      expiryDate: '2024-07-15',
-      refillsLeft: 5,
-      instructions: 'Take with food to avoid stomach irritation.',
-      status: 'active'
-    },
-    {
-      id: '3',
-      medication: 'Vitamin D3',
-      dosage: '2000 IU',
-      frequency: 'Once daily',
-      doctor: 'Dr. Michael Chen',
-      prescribedDate: '2024-01-10',
-      expiryDate: '2025-01-10',
-      refillsLeft: 2,
-      instructions: 'Take with largest meal of the day.',
-      status: 'active'
-    }
-  ];
+  useEffect(() => {
+  const db = getDatabase();
+  const auth = getAuth();
+  const user = auth.currentUser;
 
-  const pastPrescriptions = [
-    {
-      id: '4',
-      medication: 'Amoxicillin',
-      dosage: '500mg',
-      frequency: 'Three times daily',
-      doctor: 'Dr. Wilson',
-      prescribedDate: '2023-12-01',
-      completedDate: '2023-12-10',
-      instructions: 'Complete full course even if feeling better.',
-      status: 'completed'
-    },
-    {
-      id: '5',
-      medication: 'Ibuprofen',
-      dosage: '400mg',
-      frequency: 'As needed',
-      doctor: 'Dr. Sarah Johnson',
-      prescribedDate: '2023-11-20',
-      completedDate: '2023-11-30',
-      instructions: 'For pain relief. Do not exceed 3 times daily.',
-      status: 'completed'
-    }
-  ];
+  if (!user) return;
+
+  const prescriptionRef = ref(db, `prescriptions/${user.uid}`);
+  onValue(prescriptionRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const today = new Date();
+    const current: any[] = [];
+    const past: any[] = [];
+
+    Object.entries(data).forEach(([id, prescription]: any) => {
+      const expiry = new Date(prescription.expiryDate);
+      const isActive = expiry >= today;
+
+      const enriched = {
+        ...prescription,
+        id,
+        status: isActive ? "active" : "completed",
+        completedDate: !isActive ? expiry.toISOString().split("T")[0] : null
+      };
+
+      isActive ? current.push(enriched) : past.push(enriched);
+    });
+
+    setCurrentPrescriptions(current);
+    setPastPrescriptions(past);
+  });
+}, []);
+
 
   const medicationReminders = [
     { medication: 'Lisinopril 10mg', time: '8:00 AM', taken: true },
