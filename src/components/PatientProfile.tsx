@@ -1,42 +1,49 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from './Layout';
-import { User, Phone, Mail, MapPin, Calendar, Heart, Activity, Edit2, Save, X } from 'lucide-react';
+import { Phone, Mail, MapPin, Activity, Edit2, Save } from 'lucide-react';
+import { auth, db } from './lib/Firebase'; 
+import { ref, set, get } from 'firebase/database';
 
 const PatientProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
-    name: 'John Doe',
-    email: 'john.doe@email.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Main St, City, State 12345',
-    dateOfBirth: '1985-06-15',
-    bloodType: 'O+',
-    height: '6\'0"',
-    weight: '180 lbs',
-    emergencyContact: 'Jane Doe - (555) 987-6543',
-    allergies: 'Penicillin, Shellfish',
-    chronicConditions: 'Hypertension',
-    currentMedications: 'Lisinopril 10mg, Aspirin 81mg'
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    dateOfBirth: '',
+    bloodType: '',
+    height: '',
+    weight: '',
+    emergencyContact: '',
+    allergies: '',
+    chronicConditions: '',
+    currentMedications: '',
   });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Here you would typically save to API
+  const uid = auth.currentUser?.uid;
+
+  useEffect(() => {
+    if (!uid) return;
+    const userRef = ref(db, `users/${uid}`);
+    get(userRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        setProfile(snapshot.val());
+      }
+    });
+  }, [uid]);
+
+  const handleSave = async () => {
+    if (!uid) return alert("User not logged in");
+    try {
+      await set(ref(db, `users/${uid}`), profile);
+      setIsEditing(false);
+      alert("Profile saved successfully!");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Failed to save profile.");
+    }
   };
-
-  const medicalHistory = [
-    { date: '2024-01-15', condition: 'Annual Physical', doctor: 'Dr. Smith', status: 'Completed' },
-    { date: '2023-12-08', condition: 'Flu Vaccination', doctor: 'Dr. Johnson', status: 'Completed' },
-    { date: '2023-10-22', condition: 'Blood Pressure Check', doctor: 'Dr. Smith', status: 'Completed' },
-    { date: '2023-08-14', condition: 'Chest X-Ray', doctor: 'Dr. Wilson', status: 'Completed' },
-  ];
-
-  const vitals = [
-    { name: 'Blood Pressure', value: '120/80 mmHg', status: 'normal', date: '2024-01-15' },
-    { name: 'Heart Rate', value: '72 bpm', status: 'normal', date: '2024-01-15' },
-    { name: 'Temperature', value: '98.6°F', status: 'normal', date: '2024-01-15' },
-    { name: 'Weight', value: '180 lbs', status: 'normal', date: '2024-01-15' },
-  ];
 
   return (
     <Layout>
@@ -59,7 +66,6 @@ const PatientProfile: React.FC = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-6">
-          {/* Profile Header */}
           <div className="bg-white shadow rounded-lg mb-6">
             <div className="px-6 py-8">
               <div className="flex items-center">
@@ -82,7 +88,7 @@ const PatientProfile: React.FC = () => {
                           className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         />
                       ) : (
-                        <p className="text-lg font-medium text-gray-900">{profile.name}</p>
+                        <p className="text-lg font-medium text-gray-900">{profile.name || 'N/A'}</p>
                       )}
                     </div>
                     <div>
@@ -95,7 +101,9 @@ const PatientProfile: React.FC = () => {
                           className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         />
                       ) : (
-                        <p className="text-lg font-medium text-gray-900">{new Date(profile.dateOfBirth).toLocaleDateString()}</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -105,7 +113,6 @@ const PatientProfile: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Contact Information */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">Contact Information</h3>
@@ -121,7 +128,7 @@ const PatientProfile: React.FC = () => {
                       className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
-                    <span className="text-gray-900">{profile.email}</span>
+                    <span className="text-gray-900">{profile.email || 'N/A'}</span>
                   )}
                 </div>
                 <div className="flex items-center">
@@ -134,7 +141,7 @@ const PatientProfile: React.FC = () => {
                       className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
-                    <span className="text-gray-900">{profile.phone}</span>
+                    <span className="text-gray-900">{profile.phone || 'N/A'}</span>
                   )}
                 </div>
                 <div className="flex items-start">
@@ -147,13 +154,12 @@ const PatientProfile: React.FC = () => {
                       rows={3}
                     />
                   ) : (
-                    <span className="text-gray-900">{profile.address}</span>
+                    <span className="text-gray-900">{profile.address || 'N/A'}</span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Medical Information */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">Medical Information</h3>
@@ -167,6 +173,7 @@ const PatientProfile: React.FC = () => {
                       onChange={(e) => setProfile({...profile, bloodType: e.target.value})}
                       className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     >
+                      <option value="">Select</option>
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
                       <option value="B+">B+</option>
@@ -177,7 +184,7 @@ const PatientProfile: React.FC = () => {
                       <option value="O-">O-</option>
                     </select>
                   ) : (
-                    <p className="text-gray-900 font-medium">{profile.bloodType}</p>
+                    <p className="text-gray-900 font-medium">{profile.bloodType || 'N/A'}</p>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -191,7 +198,7 @@ const PatientProfile: React.FC = () => {
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       />
                     ) : (
-                      <p className="text-gray-900 font-medium">{profile.height}</p>
+                      <p className="text-gray-900 font-medium">{profile.height || 'N/A'}</p>
                     )}
                   </div>
                   <div>
@@ -204,7 +211,7 @@ const PatientProfile: React.FC = () => {
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       />
                     ) : (
-                      <p className="text-gray-900 font-medium">{profile.weight}</p>
+                      <p className="text-gray-900 font-medium">{profile.weight || 'N/A'}</p>
                     )}
                   </div>
                 </div>
@@ -218,13 +225,12 @@ const PatientProfile: React.FC = () => {
                       rows={2}
                     />
                   ) : (
-                    <p className="text-gray-900">{profile.allergies}</p>
+                    <p className="text-gray-900">{profile.allergies || 'N/A'}</p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Current Vitals */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900 flex items-center">
@@ -232,61 +238,9 @@ const PatientProfile: React.FC = () => {
                   Current Vitals
                 </h3>
               </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {vitals.map((vital, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{vital.name}</p>
-                        <p className="text-sm text-gray-500">{vital.date}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">{vital.value}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          vital.status === 'normal' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {vital.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="p-6 text-sm text-gray-500">
+                No vitals available for now.
               </div>
-            </div>
-          </div>
-
-          {/* Medical History */}
-          <div className="mt-6 bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Medical History</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition/Treatment</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {medicalHistory.map((record, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.condition}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.doctor}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                          {record.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         </div>

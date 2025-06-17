@@ -1,5 +1,6 @@
 // Import the functions you need from the SDKs
 import { initializeApp } from "firebase/app";
+import { getDatabase } from "firebase/database";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -32,9 +33,9 @@ if (typeof window !== "undefined") {
 
 // Initialize common services
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getDatabase(app);
 const storage = getStorage(app);
 
 // Export initialized services
-export { app, analytics, auth, db, storage,};
+export { app, analytics, auth, db, storage };
 
