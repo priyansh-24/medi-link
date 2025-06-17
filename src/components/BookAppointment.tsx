@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
 import { Calendar, Clock, User, Stethoscope, MapPin, Star, Bot } from 'lucide-react';
+import { ref, push } from 'firebase/database';
+import { auth, db } from './lib/Firebase'; 
 
 const BookAppointment: React.FC = () => {
   const navigate = useNavigate();
@@ -83,10 +85,26 @@ const BookAppointment: React.FC = () => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleBooking = () => {
-    // Simulate booking process
+  const handleBooking = async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    alert('You must be logged in to book an appointment.');
+    return;
+  }
+
+  const bookingRef = ref(db, `bookings/${user.uid}`);
+  try {
+    await push(bookingRef, {
+      ...appointmentData,
+      timestamp: new Date().toISOString()
+    });
     navigate(`/doctor/${appointmentData.doctorId}`);
-  };
+  } catch (error) {
+    console.error('Booking failed:', error);
+    alert('Failed to book appointment. Please try again.');
+  }
+};
+
 
   return (
     <Layout>
