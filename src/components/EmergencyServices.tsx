@@ -23,7 +23,6 @@ type Hospital = {
 const EmergencyServices: React.FC = () => {
   const [selectedEmergency, setSelectedEmergency] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const [nearbyHospitals, setNearbyHospitals] = useState<Hospital[]>([]);
 
   const emergencyTypes = [
@@ -50,16 +49,13 @@ const EmergencyServices: React.FC = () => {
         },
         (error) => {
           console.error("Error getting location:", error);
-          setLocationError("Location access denied. Please enable location.");
         }
       );
-    } else {
-      setLocationError("Geolocation is not supported by this browser.");
     }
   }, []);
 
   const fetchNearbyHospitals = async (lat: number, lng: number) => {
-    const apiKey = 'YOUR_API_KEY_HERE';
+    const apiKey = 'YOUR_GOOGLE_API_KEY'; // Replace with your actual key
     const radius = 5000;
     const type = 'hospital';
 
@@ -76,7 +72,7 @@ const EmergencyServices: React.FC = () => {
           address: hospital.vicinity,
           location: hospital.geometry.location,
           rating: hospital.rating || 0,
-          phone: '', // Add phone fetching logic if needed
+          phone: '', // Needs separate Place Details API call
           emergencyWait: 'N/A',
           specialties: ['General', 'Emergency'],
         }));
@@ -162,8 +158,7 @@ const EmergencyServices: React.FC = () => {
                 <MapPin className="h-5 w-5 mr-2 text-blue-500" />
                 Nearby Hospitals & Emergency Rooms
               </h3>
-              {locationError && <p className="text-sm text-red-600">{locationError}</p>}
-              {!location && !locationError && <p className="text-sm text-gray-500">Detecting location...</p>}
+              {!location && <p className="text-sm text-gray-500">Detecting location...</p>}
               {location && nearbyHospitals.length === 0 && <p className="text-sm text-gray-500">Fetching hospitals...</p>}
             </div>
             <div className="divide-y divide-gray-200">
@@ -183,8 +178,11 @@ const EmergencyServices: React.FC = () => {
                         <span className="text-sm">{hospital.address}</span>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {hospital.specialties.map((specialty, idx) => (
-                          <span key={idx} className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        {hospital.specialties?.map((specialty, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                          >
                             {specialty}
                           </span>
                         ))}
@@ -192,7 +190,10 @@ const EmergencyServices: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           {[...Array(5)].map((_, i) => (
-                            <div key={i} className={`h-4 w-4 ${i < Math.floor(hospital.rating) ? 'text-yellow-400' : 'text-gray-300'}`}>
+                            <div
+                              key={i}
+                              className={`h-4 w-4 ${i < Math.floor(hospital.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
+                            >
                               ★
                             </div>
                           ))}
