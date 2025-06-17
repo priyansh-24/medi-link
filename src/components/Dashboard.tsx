@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
-import { 
-  Calendar, 
-  FileText, 
-  AlertTriangle, 
-  Clock, 
-  Heart, 
+import { getDatabase, ref, get, child } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
+import {
+  Calendar,
+  FileText,
+  AlertTriangle,
+  Clock,
+  Heart,
   Activity,
   Pill,
   Users
@@ -14,30 +16,63 @@ import {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [nextAppointment, setNextAppointment] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const db = getDatabase();
+      const bookingsRef = ref(db, `bookings/${user.uid}`);
+
+      try {
+        const snapshot = await get(bookingsRef);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const allAppointments = Object.values(data) as any[];
+
+          // Sort by timestamp ascending (earliest first)
+          allAppointments.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+          setAppointments(allAppointments);
+          setNextAppointment(allAppointments[0] || null);
+        }
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+      }
+    };
+
+    fetchAppointments();
+  }, []);
 
   const stats = [
-    { name: 'Next Appointment', value: 'Tomorrow, 2:00 PM', icon: Calendar, color: 'bg-blue-500' },
+    {
+      name: 'Next Appointment',
+      value: nextAppointment
+        ? `${nextAppointment.preferredDate}, ${nextAppointment.preferredTime}`
+        : 'No upcoming appointment',
+      icon: Calendar,
+      color: 'bg-blue-500'
+    },
     { name: 'Active Prescriptions', value: '3', icon: Pill, color: 'bg-green-500' },
     { name: 'Health Score', value: '85/100', icon: Heart, color: 'bg-red-500' },
-    { name: 'Last Checkup', value: '2 weeks ago', icon: Activity, color: 'bg-purple-500' },
+    { name: 'Last Checkup', value: '2 weeks ago', icon: Activity, color: 'bg-purple-500' }
   ];
 
   const quickActions = [
     { name: 'Book Appointment', icon: Calendar, href: '/book-appointment', color: 'bg-blue-600' },
     { name: 'Emergency Services', icon: AlertTriangle, href: '/emergency', color: 'bg-red-600' },
     { name: 'View Prescriptions', icon: FileText, href: '/prescriptions', color: 'bg-green-600' },
-    { name: 'Update Profile', icon: Users, href: '/profile', color: 'bg-purple-600' },
+    { name: 'Update Profile', icon: Users, href: '/profile', color: 'bg-purple-600' }
   ];
 
   const recentMedications = [
     { name: 'Aspirin 100mg', time: '8:00 AM', status: 'taken' },
     { name: 'Vitamin D3', time: '12:00 PM', status: 'pending' },
-    { name: 'Blood Pressure Med', time: '6:00 PM', status: 'pending' },
-  ];
-
-  const upcomingAppointments = [
-    { doctor: 'Dr. Sarah Johnson', specialty: 'Cardiologist', date: 'Tomorrow', time: '2:00 PM' },
-    { doctor: 'Dr. Michael Chen', specialty: 'General Physician', date: 'Friday', time: '10:30 AM' },
+    { name: 'Blood Pressure Med', time: '6:00 PM', status: 'pending' }
   ];
 
   return (
@@ -103,24 +138,22 @@ const Dashboard: React.FC = () => {
                   Today's Medications
                 </h3>
               </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {recentMedications.map((med, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{med.name}</p>
-                        <p className="text-sm text-gray-500">{med.time}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        med.status === 'taken' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {med.status}
-                      </span>
+              <div className="p-6 space-y-4">
+                {recentMedications.map((med, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{med.name}</p>
+                      <p className="text-sm text-gray-500">{med.time}</p>
                     </div>
-                  ))}
-                </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      med.status === 'taken'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {med.status}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -133,16 +166,20 @@ const Dashboard: React.FC = () => {
                 </h3>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  {upcomingAppointments.map((appointment, index) => (
+                <div className="space-y-4 max-h-36 overflow-y-auto pr-2">
+                  {appointments.map((appointment, index) => (
                     <div key={index} className="border-l-4 border-blue-400 pl-4">
-                      <p className="text-sm font-medium text-gray-900">{appointment.doctor}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {appointment.symptoms || 'General Consultation'}
+                      </p>
                       <p className="text-sm text-gray-500">{appointment.specialty}</p>
-                      <p className="text-sm text-blue-600">{appointment.date} at {appointment.time}</p>
+                      <p className="text-sm text-blue-600">
+                        {new Date(appointment.preferredDate).toDateString()} at {appointment.preferredTime}
+                      </p>
                     </div>
                   ))}
                 </div>
-                <button 
+                <button
                   onClick={() => navigate('/book-appointment')}
                   className="mt-4 w-full bg-blue-50 text-blue-700 py-2 px-4 rounded-md hover:bg-blue-100 transition-colors duration-200"
                 >
