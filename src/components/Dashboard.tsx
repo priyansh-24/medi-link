@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
-import { getDatabase, ref, get, child } from 'firebase/database';
+import { getDatabase, ref, get } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 import {
   Calendar,
@@ -18,34 +18,81 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [nextAppointment, setNextAppointment] = useState<any>(null);
+  const [activePrescriptions, setActivePrescriptions] = useState<any[]>([]);
+  const [todayMedications, setTodayMedications] = useState<any[]>([]);
+  const [healthScore, setHealthScore] = useState<string>('Loading...');
+  const [lastCheckup, setLastCheckup] = useState<string>('Loading...');
 
   useEffect(() => {
-    const fetchAppointments = async () => {
+    const fetchData = async () => {
       const auth = getAuth();
       const user = auth.currentUser;
       if (!user) return;
 
       const db = getDatabase();
-      const bookingsRef = ref(db, `bookings/${user.uid}`);
+      const userRef = user.uid;
 
       try {
-        const snapshot = await get(bookingsRef);
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          const allAppointments = Object.values(data) as any[];
-
-          // Sort by timestamp ascending (earliest first)
-          allAppointments.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-          setAppointments(allAppointments);
-          setNextAppointment(allAppointments[0] || null);
+        // Fetch Appointments
+        const bookingsSnap = await get(ref(db, `bookings/${userRef}`));
+        if (bookingsSnap.exists()) {
+          const data = Object.values(bookingsSnap.val()) as any[];
+          data.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          setAppointments(data);
+          setNextAppointment(data[0] || null);
         }
-      } catch (error) {
-        console.error('Error fetching appointments:', error);
+
+        // Fetch Prescriptions
+        const prescriptionsSnap = await get(ref(db, `prescriptions/${userRef}`));
+        if (prescriptionsSnap.exists()) {
+          const prescriptions = Object.values(prescriptionsSnap.val()) as any[];
+
+          // Filter active prescriptions
+          const today = new Date();
+          const active = prescriptions.filter((p) => new Date(p.expiryDate) > today);
+          setActivePrescriptions(active);
+
+          // Last Checkup = most recent prescribedDate
+          if (active.length > 0) {
+            const latest = active.reduce((a, b) =>
+              new Date(a.prescribedDate) > new Date(b.prescribedDate) ? a : b
+            );
+            setLastCheckup(new Date(latest.prescribedDate).toDateString());
+          } else {
+            setLastCheckup('No active prescriptions');
+          }
+
+          // Build today's medications
+          const meds = [];
+          active.forEach((p) => {
+            const times = Array.isArray(p.schedule)
+              ? p.schedule
+              : Object.values(p.schedule || {});
+            times.forEach((time: string) => {
+              meds.push({
+                name: `${p.medication} ${p.dosage}`,
+                time,
+                status: 'pending'
+              });
+            });
+          });
+          setTodayMedications(meds);
+        }
+
+        // Fetch Profile for Health Score
+        const profileSnap = await get(ref(db, `profiles/${userRef}`));
+        if (profileSnap.exists()) {
+          const profile = profileSnap.val();
+          setHealthScore(profile.healthScore || 'N/A');
+        } else {
+          setHealthScore('N/A');
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
       }
     };
 
-    fetchAppointments();
+    fetchData();
   }, []);
 
   const stats = [
@@ -57,9 +104,24 @@ const Dashboard: React.FC = () => {
       icon: Calendar,
       color: 'bg-blue-500'
     },
-    { name: 'Active Prescriptions', value: '3', icon: Pill, color: 'bg-green-500' },
-    { name: 'Health Score', value: '85/100', icon: Heart, color: 'bg-red-500' },
-    { name: 'Last Checkup', value: '2 weeks ago', icon: Activity, color: 'bg-purple-500' }
+    {
+      name: 'Active Prescriptions',
+      value: `${activePrescriptions.length}`,
+      icon: Pill,
+      color: 'bg-green-500'
+    },
+    {
+      name: 'Health Score',
+      value: healthScore,
+      icon: Heart,
+      color: 'bg-red-500'
+    },
+    {
+      name: 'Last Checkup',
+      value: lastCheckup,
+      icon: Activity,
+      color: 'bg-purple-500'
+    }
   ];
 
   const quickActions = [
@@ -69,12 +131,6 @@ const Dashboard: React.FC = () => {
     { name: 'Update Profile', icon: Users, href: '/profile', color: 'bg-purple-600' }
   ];
 
-  const recentMedications = [
-    { name: 'Aspirin 100mg', time: '8:00 AM', status: 'taken' },
-    { name: 'Vitamin D3', time: '12:00 PM', status: 'pending' },
-    { name: 'Blood Pressure Med', time: '6:00 PM', status: 'pending' }
-  ];
-
   return (
     <Layout>
       <div className="py-6">
@@ -82,7 +138,8 @@ const Dashboard: React.FC = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          {/* Stats */}
+
+          {/* Stats Section */}
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((item) => {
               const Icon = item.icon;
@@ -128,9 +185,9 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Recent Activity Grid */}
+          {/* Today’s Medications and Appointments */}
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Medication Reminders */}
+            {/* Medications */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900 flex items-center">
@@ -138,22 +195,26 @@ const Dashboard: React.FC = () => {
                   Today's Medications
                 </h3>
               </div>
-              <div className="p-6 space-y-4">
-                {recentMedications.map((med, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{med.name}</p>
-                      <p className="text-sm text-gray-500">{med.time}</p>
+              <div className="p-6 space-y-4 max-h-64 overflow-y-auto">
+                {todayMedications.length > 0 ? (
+                  todayMedications.map((med, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{med.name}</p>
+                        <p className="text-sm text-gray-500">{med.time}</p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        med.status === 'taken'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {med.status}
+                      </span>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      med.status === 'taken'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {med.status}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No medications scheduled for today.</p>
+                )}
               </div>
             </div>
 
