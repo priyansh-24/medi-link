@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
-import { Calendar, Clock, User, Stethoscope, MapPin, Star, Bot, Upload, X } from 'lucide-react';
+import { Clock, Stethoscope, MapPin, Star, Bot, Upload, X } from 'lucide-react';
 import { ref, push, onValue } from 'firebase/database';
 import { auth, db } from './lib/Firebase';
 
@@ -150,7 +150,16 @@ const BookAppointment: React.FC = () => {
     }
 
     // Compress the appointment data to fit Firebase limits
-    const bookingData = {
+    const bookingData: {
+      specialty: string;
+      symptoms: string;
+      urgency: string;
+      preferredDate: string;
+      preferredTime: string;
+      doctorId: string;
+      timestamp: string;
+      photoURL?: string;
+    } = {
       specialty: appointmentData.specialty,
       symptoms: appointmentData.symptoms,
       urgency: appointmentData.urgency,
