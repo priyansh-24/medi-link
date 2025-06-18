@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 
 const DoctorProfile: React.FC = () => {
-  const { id } = useParams();
   const navigate = useNavigate();
 
   // Mock doctor data
