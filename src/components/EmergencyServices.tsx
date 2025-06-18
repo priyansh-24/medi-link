@@ -55,7 +55,7 @@ const EmergencyServices: React.FC = () => {
   }, []);
 
   const fetchNearbyHospitals = async (lat: number, lng: number) => {
-    const apiKey = 'YOUR_GOOGLE_API_KEY'; // Replace with your actual key
+    const apiKey = 'AIzaSyDUiwjaBf90mRyAYvZaGzAq3JhROyrUOs4'; // Replace with your actual key
     const radius = 5000;
     const type = 'hospital';
 
