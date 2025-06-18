@@ -1,6 +1,7 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 import {
   Heart,
   Home,
@@ -22,7 +23,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [query, setQuery] = useState('');
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -42,6 +47,41 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Prescriptions', href: '/prescriptions', icon: FileText },
     { name: 'Book Appointment', href: '/book-appointment', icon: Calendar },
   ];
+
+  const handleAskAssistant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+
+    setLoading(true);
+    setResponse('');
+
+    try {
+      const res = await axios.post(
+        'https://api.deepseek.com/v1/chat/completions',
+        {
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: 'You are a helpful medical assistant.' },
+            { role: 'user', content: query },
+          ],
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `sk-e10385e4bfd443c1b6bc9989bc045ab1`,
+          },
+        }
+      );
+
+      const answer = res.data.choices[0].message.content;
+      setResponse(answer);
+    } catch (error) {
+      console.error(error);
+      setResponse('⚠️ Unable to get a response. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderNavItems = () =>
     navigation.map((item) => {
@@ -68,9 +108,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile menu */}
-      {user && (
-        <div className={`fixed inset-0 z-50 lg:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}>
+      {/* Mobile Sidebar */}
+      {user && isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
           <div
             className="fixed inset-0 bg-gray-600 bg-opacity-75"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -90,7 +130,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       )}
 
-      {/* Desktop sidebar */}
+      {/* Desktop Sidebar */}
       {user && (
         <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
           <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
@@ -105,7 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       )}
 
-      {/* Main content */}
+      {/* Main Layout */}
       <div className={`${user ? 'lg:pl-64' : ''} flex flex-col flex-1`}>
         <div className="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white shadow">
           {user && (
@@ -118,29 +158,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </button>
           )}
           <div className="flex-1 px-4 flex justify-between">
-            <div className="flex-1 flex">
-              <div className="w-full flex md:ml-0">
-                <div className="relative w-full text-gray-400 focus-within:text-gray-600">
-                  <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
-                    <MessageCircle className="h-5 w-5" />
-                  </div>
-                  <input
-                    className="block w-full h-full pl-8 pr-3 py-2 border-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-0 focus:border-transparent sm:text-sm"
-                    placeholder="Ask our AI assistant..."
-                    type="search"
-                  />
+            <form onSubmit={handleAskAssistant} className="flex-1 flex items-center">
+              <div className="relative w-full text-gray-400 focus-within:text-gray-600">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-2">
+                  <MessageCircle className="h-5 w-5" />
                 </div>
+                <input
+                  className="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Ask our AI assistant..."
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
               </div>
-            </div>
+              <button
+                type="submit"
+                className="ml-2 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Ask
+              </button>
+            </form>
+
             {user && (
               <div className="ml-4 flex items-center md:ml-6">
                 {user.profileImage ? (
                   <img
                     className="h-8 w-8 rounded-full object-cover"
-                    src={
-                      user?.profileImage ||
-                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face'
-                    }
+                    src={user.profileImage}
                     alt="Profile"
                   />
                 ) : (
@@ -153,7 +197,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="ml-3 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="ml-3 p-1 rounded-full text-gray-400 hover:text-gray-500"
                 >
                   <LogOut className="h-5 w-5" />
                 </button>
@@ -162,7 +206,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
 
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 p-4">
+          {children}
+          {loading && <p className="mt-4 text-blue-600">🔄 Thinking...</p>}
+          {response && (
+            <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded">
+              <strong>AI Assistant:</strong>
+              <p className="mt-2 text-gray-800 whitespace-pre-line">{response}</p>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
