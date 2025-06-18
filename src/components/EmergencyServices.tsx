@@ -42,8 +42,37 @@ const EmergencyServices: React.FC = () => {
   const quickActions = [
     { name: 'Call 911', action: () => window.open('tel:911'), color: 'bg-red-600', icon: Phone },
     { name: 'Call Poison Control', action: () => window.open('tel:18002221222'), color: 'bg-orange-600', icon: Phone },
-    { name: 'Share Location', action: () => alert('Sharing location feature coming soon.'), color: 'bg-blue-600', icon: MapPin },
-    { name: 'Medical ID', action: () => alert('Medical ID feature coming soon.'), color: 'bg-green-600', icon: Heart },
+    {
+    name: 'Share Location',
+    action: () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const latitude = position.coords.latitude.toFixed(6);
+            const longitude = position.coords.longitude.toFixed(6);
+            const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+            const message = `🚨 I need help! Here's my live location: ${locationUrl}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            alert('Unable to access your location. Please allow location permissions.');
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      } else {
+        alert('Geolocation is not supported by this browser.');
+      }
+    },
+    color: 'bg-blue-600',
+    icon: MapPin,
+  },
+  { name: 'Medical ID', action: () => alert('Medical ID feature coming soon.'), color: 'bg-green-600', icon: Heart },
   ];
 
   useEffect(() => {
