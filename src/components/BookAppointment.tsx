@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
-import { Calendar, Clock, User, Stethoscope, MapPin, Star, Bot } from 'lucide-react';
+import { Calendar, Clock, User, Stethoscope, MapPin, Star, Bot, Upload, X } from 'lucide-react';
 import { ref, push, onValue } from 'firebase/database';
-import { auth, db } from './lib/Firebase'; 
+import { auth, db } from './lib/Firebase';
 
 const BookAppointment: React.FC = () => {
   const navigate = useNavigate();
@@ -11,11 +11,14 @@ const BookAppointment: React.FC = () => {
   const [appointmentData, setAppointmentData] = useState({
     specialty: '',
     symptoms: '',
+    photoURL: '', // Stores Base64 image string
     urgency: '',
     preferredDate: '',
     preferredTime: '',
     doctorId: ''
   });
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [imageError, setImageError] = useState('');
 
   const specialties = [
     { id: 'general', name: 'General Medicine', description: 'General health checkups and common conditions' },
@@ -35,6 +38,10 @@ const BookAppointment: React.FC = () => {
 
   const [allDoctors, setAllDoctors] = useState<any[]>([]);
   const [aiRecommendedDoctors, setAiRecommendedDoctors] = useState<any[]>([]);
+  const timeSlots = [
+    '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+    '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'
+  ];
 
   useEffect(() => {
     const doctorsRef = ref(db, 'Doctors');
@@ -44,63 +51,42 @@ const BookAppointment: React.FC = () => {
         const doctorList = Object.entries(data).map(([id, doctor]: any) => ({
           id,
           ...doctor,
-          // Add a default image if none exists
           image: doctor.image || 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg',
-          // Calculate AI match percentage based on specialty and availability
           aiMatch: calculateMatchPercentage(doctor)
         }));
         setAllDoctors(doctorList);
-        // Initially set all doctors as recommendations
         setAiRecommendedDoctors(doctorList);
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Update recommendations when specialty changes
   useEffect(() => {
     if (appointmentData.specialty && allDoctors.length > 0) {
-      // Filter doctors by specialty first
       const specialtyDoctors = allDoctors.filter(doctor => 
         doctor.specialty.toLowerCase().includes(appointmentData.specialty.toLowerCase())
       );
-      
-      // Then add other doctors
       const otherDoctors = allDoctors.filter(doctor => 
         !doctor.specialty.toLowerCase().includes(appointmentData.specialty.toLowerCase())
       );
-      
-      // Combine with specialty doctors first
       setAiRecommendedDoctors([...specialtyDoctors, ...otherDoctors]);
     } else {
       setAiRecommendedDoctors(allDoctors);
     }
   }, [appointmentData.specialty, allDoctors]);
 
-  // Helper function to calculate match percentage
   const calculateMatchPercentage = (doctor: any) => {
-    let match = 50; // Base match
-    
-    // Increase match if specialty matches
+    let match = 50;
     if (doctor.specialty.toLowerCase().includes(appointmentData.specialty.toLowerCase())) {
       match += 30;
     }
-    
-    // Increase match based on availability
     if (doctor.availability === 'high') {
       match += 10;
     } else if (doctor.availability === 'medium') {
       match += 5;
     }
-    
-    // Ensure match is between 0-100
     return Math.min(100, Math.max(0, match));
   };
-
-  const timeSlots = [
-    '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-    '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'
-  ];
 
   const handleNext = () => {
     if (step < 4) setStep(step + 1);
@@ -110,6 +96,52 @@ const BookAppointment: React.FC = () => {
     if (step > 1) setStep(step - 1);
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset previous errors
+    setImageError('');
+
+    // Validate file type
+    if (!file.type.match('image.*')) {
+      setImageError('Please upload an image file (JPEG, PNG)');
+      return;
+    }
+
+    // Validate file size (max 500KB for Base64)
+    const MAX_SIZE = 500 * 1024; // 500KB
+    if (file.size > MAX_SIZE) {
+      setImageError('Image size should be less than 500KB');
+      return;
+    }
+
+    setIsImageUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setAppointmentData({
+          ...appointmentData,
+          photoURL: event.target.result as string
+        });
+      }
+      setIsImageUploading(false);
+    };
+    reader.onerror = () => {
+      setImageError('Error reading file');
+      setIsImageUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setAppointmentData({
+      ...appointmentData,
+      photoURL: ''
+    });
+  };
+
   const handleBooking = async () => {
     const user = auth.currentUser;
     if (!user) {
@@ -117,16 +149,32 @@ const BookAppointment: React.FC = () => {
       return;
     }
 
+    // Compress the appointment data to fit Firebase limits
+    const bookingData = {
+      specialty: appointmentData.specialty,
+      symptoms: appointmentData.symptoms,
+      urgency: appointmentData.urgency,
+      preferredDate: appointmentData.preferredDate,
+      preferredTime: appointmentData.preferredTime,
+      doctorId: appointmentData.doctorId,
+      timestamp: new Date().toISOString()
+    };
+
+    // Only include photoURL if it exists and is small enough
+    if (appointmentData.photoURL && appointmentData.photoURL.length < 900000) { // ~900KB Firebase limit
+      bookingData.photoURL = appointmentData.photoURL;
+    } else if (appointmentData.photoURL) {
+      alert('Image is too large to store. Please upload a smaller image or proceed without it.');
+      return;
+    }
+
     const bookingRef = ref(db, `bookings/${user.uid}`);
     try {
-      await push(bookingRef, {
-        ...appointmentData,
-        timestamp: new Date().toISOString()
-      });
+      await push(bookingRef, bookingData);
       navigate(`/doctor/${appointmentData.doctorId}`);
     } catch (error) {
       console.error('Booking failed:', error);
-      alert('Failed to book appointment. Please try again.');
+      alert('Failed to book appointment. Please try again with a smaller image or no image.');
     }
   };
 
@@ -174,7 +222,60 @@ const BookAppointment: React.FC = () => {
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={4}
                     placeholder="Describe your symptoms or reason for visit..."
+                    required
                   />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Upload symptom photo (optional)</h3>
+                  <p className="text-sm text-gray-500 mb-4">Max size: 500KB (JPEG, PNG)</p>
+                  
+                  <div className="flex items-center">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-500">
+                          <span className="font-semibold">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500">PNG, JPG (MAX. 500KB)</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isImageUploading}
+                      />
+                    </label>
+                  </div>
+                  
+                  {isImageUploading && (
+                    <div className="mt-2 text-sm text-blue-600">Processing image...</div>
+                  )}
+
+                  {imageError && (
+                    <div className="mt-2 text-sm text-red-600">{imageError}</div>
+                  )}
+
+                  {appointmentData.photoURL && (
+                    <div className="mt-4 relative">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Uploaded Image:</p>
+                      <div className="relative inline-block">
+                        <img 
+                          src={appointmentData.photoURL} 
+                          alt="Symptom preview" 
+                          className="h-32 object-contain border rounded"
+                        />
+                        <button
+                          onClick={removeImage}
+                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 -mt-2 -mr-2"
+                          aria-label="Remove image"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -243,6 +344,7 @@ const BookAppointment: React.FC = () => {
                       onChange={(e) => setAppointmentData({ ...appointmentData, preferredDate: e.target.value })}
                       min={new Date().toISOString().split('T')[0]}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
                     />
                   </div>
 
@@ -269,86 +371,86 @@ const BookAppointment: React.FC = () => {
             )}
             
             {/* Step 4: AI Doctor Recommendations */}
-{step === 4 && (
-  <div className="space-y-6">
-    <div className="flex items-center mb-6">
-      <Bot className="h-6 w-6 text-blue-600 mr-2" />
-      <h3 className="text-lg font-medium text-gray-900">AI Recommended Doctors</h3>
-    </div>
-    <p className="text-gray-600 mb-6">
-      {appointmentData.specialty ? 
-        `Showing ${specialties.find(s => s.id === appointmentData.specialty)?.name} specialists first:` : 
-        "Here are our available doctors:"}
-    </p>
+            {step === 4 && (
+              <div className="space-y-6">
+                <div className="flex items-center mb-6">
+                  <Bot className="h-6 w-6 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-medium text-gray-900">AI Recommended Doctors</h3>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  {appointmentData.specialty ? 
+                    `Showing ${specialties.find(s => s.id === appointmentData.specialty)?.name} specialists first:` : 
+                    "Here are our available doctors:"}
+                </p>
 
-    {aiRecommendedDoctors.length > 0 ? (
-      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2"> {/* Added scrollable container */}
-        {aiRecommendedDoctors.map((doctor) => (
-          <div
-            key={doctor.id}
-            className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
-              appointmentData.doctorId === doctor.id
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-            onClick={() => setAppointmentData({ ...appointmentData, doctorId: doctor.id })}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start">
-                <img
-                  src={doctor.image}
-                  alt={doctor.name}
-                  className="h-16 w-16 rounded-full mr-4"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg';
-                  }}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <h4 className="text-lg font-semibold text-gray-900">{doctor.name}</h4>
-                    {doctor.specialty.toLowerCase().includes(appointmentData.specialty.toLowerCase()) && (
-                      <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                        AI Matched
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center text-gray-600 mb-2">
-                    <Stethoscope className="h-4 w-4 mr-1" />
-                    <span className="text-sm">{doctor.specialty}</span>
-                    <span className="mx-2">•</span>
-                    <span className="text-sm">{doctor.experience}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600 mb-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span className="text-sm">{doctor.location}</span>
-                  </div>
-                  <div className="flex items-center mb-3">
-                    <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">{doctor.rating}</span>
-                    <Clock className="h-4 w-4 text-gray-400 ml-3 mr-1" />
-                    <span className="text-sm text-gray-600">{doctor.nextAvailable}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {(doctor.reasons ?? []).map((reason: string, index: number) => (
-                      <span
-                        key={index}
-                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                {aiRecommendedDoctors.length > 0 ? (
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    {aiRecommendedDoctors.map((doctor) => (
+                      <div
+                        key={doctor.id}
+                        className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
+                          appointmentData.doctorId === doctor.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => setAppointmentData({ ...appointmentData, doctorId: doctor.id })}
                       >
-                        {reason}
-                      </span>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start">
+                            <img
+                              src={doctor.image}
+                              alt={doctor.name}
+                              className="h-16 w-16 rounded-full mr-4"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg';
+                              }}
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center mb-2">
+                                <h4 className="text-lg font-semibold text-gray-900">{doctor.name}</h4>
+                                {doctor.specialty.toLowerCase().includes(appointmentData.specialty.toLowerCase()) && (
+                                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                    AI Matched
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center text-gray-600 mb-2">
+                                <Stethoscope className="h-4 w-4 mr-1" />
+                                <span className="text-sm">{doctor.specialty}</span>
+                                <span className="mx-2">•</span>
+                                <span className="text-sm">{doctor.experience}</span>
+                              </div>
+                              <div className="flex items-center text-gray-600 mb-2">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                <span className="text-sm">{doctor.location}</span>
+                              </div>
+                              <div className="flex items-center mb-3">
+                                <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                                <span className="text-sm font-medium">{doctor.rating}</span>
+                                <Clock className="h-4 w-4 text-gray-400 ml-3 mr-1" />
+                                <span className="text-sm text-gray-600">{doctor.nextAvailable}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {(doctor.reasons ?? []).map((reason: string, index: number) => (
+                                  <span
+                                    key={index}
+                                    className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                                  >
+                                    {reason}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-gray-500">No doctors found. Please try again later.</p>
+                )}
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <p className="text-gray-500">No doctors found. Please try again later.</p>
-    )}
-  </div>
-)}
+            )}
 
             {/* Navigation Buttons */}
             <div className="flex justify-between mt-8">
