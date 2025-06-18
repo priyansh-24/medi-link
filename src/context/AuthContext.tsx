@@ -1,19 +1,20 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { auth } from '../components/lib/Firebase'; // adjust path as needed
+import { auth } from '../components/lib/Firebase';
 import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
+import { getDatabase, ref, get } from 'firebase/database';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'patient' | 'doctor' | 'admin'; // You can load role from custom claims or DB if needed
-  profileImage?: string;
+  role: 'patient' | 'doctor' | 'admin';
+  profileImage?: string; // base64 or URL
 }
 
 interface AuthContextType {
@@ -41,17 +42,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUserProfile = async (firebaseUser: FirebaseUser) => {
+    const db = getDatabase();
+    const snapshot = await get(ref(db, `users/${firebaseUser.uid}`));
+    const profile = snapshot.val();
+
+    setUser({
+      id: firebaseUser.uid,
+      name: profile?.name || firebaseUser.displayName || 'User',
+      email: firebaseUser.email || '',
+      role: profile?.role || 'patient',
+      profileImage: profile?.photoURL || firebaseUser.photoURL || undefined,
+    });
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = credential.user;
-      setUser({
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-        email: firebaseUser.email || '',
-        role: 'patient', // Default fallback. Ideally fetch from Firestore or custom claims
-        profileImage: firebaseUser.photoURL || undefined,
-      });
+      await fetchUserProfile(firebaseUser);
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -64,17 +73,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
-  // Sync with Firebase Auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        setUser({
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          email: firebaseUser.email || '',
-          role: 'patient', // Default fallback, or load from DB
-          profileImage: firebaseUser.photoURL || undefined,
-        });
+        await fetchUserProfile(firebaseUser);
       } else {
         setUser(null);
       }

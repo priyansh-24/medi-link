@@ -24,7 +24,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
-  // Redirect to login if user is not authenticated
   useEffect(() => {
     if (!user) {
       navigate('/');
@@ -135,14 +134,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             {user && (
               <div className="ml-4 flex items-center md:ml-6">
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src={
-                    user.profileImage ||
-                    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face'
-                  }
-                  alt="Profile"
-                />
+                {user.profileImage ? (
+                  <img
+                    className="h-8 w-8 rounded-full object-cover"
+                    src={
+                      user?.profileImage ||
+                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face'
+                    }
+                    alt="Profile"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-medium">
+                    {user.name ? user.name.charAt(0).toUpperCase() : '?'}
+                  </div>
+                )}
                 <span className="ml-3 text-gray-700 text-sm font-medium hidden md:block">
                   {user.name}
                 </span>
