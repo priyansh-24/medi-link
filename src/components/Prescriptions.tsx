@@ -93,75 +93,74 @@ const handleDownload = () => {
 
           {/* Today's Medication Reminders */}
           <div className="bg-white shadow rounded-lg mb-6">
-  <div className="px-6 py-4 border-b border-gray-200">
-    <h3 className="text-lg font-medium text-gray-900 flex items-center">
-      <Clock className="h-5 w-5 mr-2 text-blue-500" />
-      Today's Medication Schedule
-    </h3>
-  </div>
-  <div className="p-6">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {Object.entries(
-        medicationReminders.reduce((acc: any, reminder: any, index: number) => {
-          const key = reminder.medication;
-          if (!acc[key]) acc[key] = [];
-          acc[key].push({ ...reminder, index });
-          return acc;
-        }, {})
-      ).map(([medication, reminders]: any) => (
-        <div
-          key={medication}
-          className={`border-2 rounded-lg p-4 ${
-            reminders.every((r: any) => r.taken)
-              ? 'border-green-200 bg-green-50'
-              : 'border-yellow-200 bg-yellow-50'
-          }`}
-        >
-          <p className="font-medium text-gray-900 mb-4">{medication}</p>
-          <div className="flex flex-wrap gap-4">
-            {reminders.map((reminder: any) => (
-              <div key={reminder.index} className="flex flex-col items-center gap-2">
-                <div
-                  className={`w-12 h-12 flex items-center justify-center rounded-full text-sm font-semibold shadow ${
-                    reminder.taken
-                      ? 'bg-green-100 text-green-600'
-                      : 'bg-yellow-100 text-yellow-600'
-                  }`}
-                >
-                  {reminder.taken ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    <span className="block text-center">{reminder.time}</span>
-                  )}
-                </div>
-                {!reminder.taken && (
-                  <button
-                    onClick={() =>
-                      setMedicationReminders((prev: any[]) =>
-                        prev.map((r, i) =>
-                          i === reminder.index ? { ...r, taken: true } : r
-                        )
-                      )
-                    }
-                    className="bg-blue-600 text-white text-xs px-3 py-1 rounded-md hover:bg-blue-700 transition"
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-blue-500" />
+                Today's Medication Schedule
+              </h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {Object.entries(
+                  medicationReminders.reduce((acc: any, reminder: any, index: number) => {
+                    const key = reminder.medication;
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push({ ...reminder, index });
+                    return acc;
+                  }, {})
+                ).map(([medication, reminders]: any) => (
+                  <div
+                    key={medication}
+                    className={`border-2 rounded-lg p-4 ${
+                      reminders.every((r: any) => r.taken)
+                        ? 'border-green-200 bg-green-50'
+                        : 'border-yellow-200 bg-yellow-50'
+                    }`}
                   >
-                    Mark
-                  </button>
-                )}
+                    <p className="font-medium text-gray-900 mb-4">{medication}</p>
+                    <div className="flex flex-wrap gap-4">
+                      {reminders.map((reminder: any) => (
+                        <div key={reminder.index} className="flex flex-col items-center gap-2">
+                          <div
+                            className={`w-12 h-12 flex items-center justify-center rounded-full text-sm font-semibold shadow ${
+                              reminder.taken
+                                ? 'bg-green-100 text-green-600'
+                                : 'bg-yellow-100 text-yellow-600'
+                            }`}
+                          >
+                            {reminder.taken ? (
+                              <CheckCircle className="h-5 w-5" />
+                            ) : (
+                              <span className="block text-center">{reminder.time}</span>
+                            )}
+                          </div>
+                          {!reminder.taken && (
+                            <button
+                              onClick={() =>
+                                setMedicationReminders((prev: any[]) =>
+                                  prev.map((r, i) =>
+                                    i === reminder.index ? { ...r, taken: true } : r
+                                  )
+                                )
+                              }
+                              className="bg-blue-600 text-white text-xs px-3 py-1 rounded-md hover:bg-blue-700 transition"
+                            >
+                              Mark
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
         </div>
-      ))}
-    </div>
-  </div>
-</div>
+      </div>
 
-
-          {/* Prescription Tabs */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="border-b border-gray-200">
-              <nav className="-mb-px flex">
+      {/* Prescription Tabs */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex">
                 <button
                   onClick={() => setActiveTab('current')}
                   className={`py-4 px-6 border-b-2 font-medium text-sm ${

@@ -11,7 +11,8 @@ import {
   Heart,
   Activity,
   Pill,
-  Users
+  Users,
+  Check
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -196,26 +197,76 @@ const Dashboard: React.FC = () => {
                 </h3>
               </div>
               <div className="p-6 space-y-4 max-h-64 overflow-y-auto">
-                {todayMedications.length > 0 ? (
-                  todayMedications.map((med, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{med.name}</p>
-                        <p className="text-sm text-gray-500">{med.time}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        med.status === 'taken'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {med.status}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500">No medications scheduled for today.</p>
-                )}
-              </div>
+  {Object.entries(
+    todayMedications.reduce((acc: any, med) => {
+      if (!acc[med.name]) acc[med.name] = [];
+      acc[med.name].push(med);
+      return acc;
+    }, {})
+  ).map(([name, meds]: any, index) => (
+    <div key={index} className="bg-gray-50 rounded-lg p-4 shadow flex flex-col gap-2">
+      <p className="text-sm font-semibold text-gray-900">{name}</p>
+      <div className="flex gap-4">
+        {meds.map((med: any, idx: number) => {
+          const formatTime = (timeStr: string) => {
+          if (!timeStr.includes(':')) timeStr = timeStr.replace(/(am|pm)/i, ':00$1');
+          const date = new Date(`1970-01-01T${convertTo24Hr(timeStr)}`);
+          if (isNaN(date.getTime())) return timeStr.toUpperCase(); // fallback
+          return date.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+        };
+
+        const convertTo24Hr = (time: string) => {
+          const [_, hourStr, minuteStr, meridian] = time
+            .match(/(\d{1,2}):?(\d{0,2})\s*(am|pm)/i) || [];
+          if (!hourStr || !meridian) return time;
+          let hour = parseInt(hourStr);
+          const minute = minuteStr || '00';
+          if (meridian.toLowerCase() === 'pm' && hour !== 12) hour += 12;
+          if (meridian.toLowerCase() === 'am' && hour === 12) hour = 0;
+          return `${hour.toString().padStart(2, '0')}:${minute}`;
+        };
+
+
+          return (
+            <div
+              key={idx}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold cursor-pointer transition ${
+                med.status === 'taken'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-yellow-300 text-yellow-900'
+              }`}
+              title={formatTime(med.time)}
+              onClick={() => {
+                const updated = [...todayMedications];
+                const medIndex = updated.findIndex(
+                  (m) => m.name === med.name && m.time === med.time
+                );
+                if (medIndex !== -1) {
+                  updated[medIndex].status =
+                    updated[medIndex].status === 'taken' ? 'pending' : 'taken';
+                  setTodayMedications(updated);
+                }
+              }}
+            >
+              {med.status === 'taken' ? (
+                <Check size={16} />
+              ) : (
+                <span className="block text-center text-[12px] leading-tight">
+                  {formatTime(med.time)}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ))}
+</div>
+
             </div>
 
             {/* Upcoming Appointments */}
