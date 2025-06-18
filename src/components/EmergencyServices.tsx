@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './Layout';
 import {
-  AlertTriangle,
-  Phone,
-  MapPin,
-  Navigation,
-  Clock,
-  Heart,
-  Ambulance,
+  AlertTriangle, Phone, MapPin, Navigation, Clock, Heart, Ambulance
 } from 'lucide-react';
-
 import { getAuth } from 'firebase/auth';
 import { getDatabase, ref, get } from 'firebase/database';
 
@@ -39,40 +32,23 @@ const EmergencyServices: React.FC = () => {
     { id: 'severe', name: 'Severe Pain', icon: AlertTriangle, color: 'bg-purple-500', description: 'Intense pain, medical emergency' },
   ];
 
+  const shareLocation = () => {
+    if (!location) {
+      alert('Location not available yet.');
+      return;
+    }
+
+    const mapsUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+    const message = `🚨 Emergency! Please help. My location: ${mapsUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const quickActions = [
     { name: 'Call 911', action: () => window.open('tel:911'), color: 'bg-red-600', icon: Phone },
     { name: 'Call Poison Control', action: () => window.open('tel:18002221222'), color: 'bg-orange-600', icon: Phone },
-    {
-    name: 'Share Location',
-    action: () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const latitude = position.coords.latitude.toFixed(6);
-            const longitude = position.coords.longitude.toFixed(6);
-            const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-            const message = `🚨 I need help! Here's my live location: ${locationUrl}`;
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-          },
-          (error) => {
-            console.error("Geolocation error:", error);
-            alert('Unable to access your location. Please allow location permissions.');
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-          }
-        );
-      } else {
-        alert('Geolocation is not supported by this browser.');
-      }
-    },
-    color: 'bg-blue-600',
-    icon: MapPin,
-  },
-  { name: 'Medical ID', action: () => alert('Medical ID feature coming soon.'), color: 'bg-green-600', icon: Heart },
+    { name: 'Share Location', action: shareLocation, color: 'bg-blue-600', icon: MapPin },
+    { name: 'Medical ID', action: () => alert('Medical ID feature coming soon.'), color: 'bg-green-600', icon: Heart },
   ];
 
   useEffect(() => {
@@ -115,8 +91,7 @@ const EmergencyServices: React.FC = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
-          const loc = { lat: latitude, lng: longitude };
+          const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
           setLocation(loc);
           fetchNearbyHospitals(loc.lat, loc.lng);
         },
@@ -129,18 +104,39 @@ const EmergencyServices: React.FC = () => {
     }
   }, []);
 
-  const fetchNearbyHospitals = async (lat: number, lng: number) => {
-    try {
-      setLoadingHospitals(true);
-      const response = await fetch(`http://localhost:5000/nearby-hospitals?lat=${lat}&lng=${lng}`);
-      const data = await response.json();
-      setNearbyHospitals(data.results || []);
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setHospitalError('Failed to fetch nearby hospitals.');
-    } finally {
-      setLoadingHospitals(false);
+  const fetchNearbyHospitals = (lat: number, lng: number) => {
+    if (!window.google || !window.google.maps) {
+      setHospitalError('Google Maps not loaded.');
+      return;
     }
+
+    setLoadingHospitals(true);
+
+    const map = new window.google.maps.Map(document.createElement('div'));
+    const service = new window.google.maps.places.PlacesService(map);
+
+    const request = {
+      location: new window.google.maps.LatLng(lat, lng),
+      radius: 5000,
+      type: 'hospital',
+    };
+
+    service.nearbySearch(request, (results, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+        setNearbyHospitals(
+          results.map((place) => ({
+          name: place.name ?? 'Unknown',
+          vicinity: place.vicinity ?? 'Unknown location',
+          rating: place.rating ?? 0,
+          user_ratings_total: place.user_ratings_total ?? 0,
+        }))
+
+        );
+      } else {
+        setHospitalError('No hospitals found.');
+      }
+      setLoadingHospitals(false);
+    });
   };
 
   return (
@@ -220,21 +216,19 @@ const EmergencyServices: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       {[...Array(5)].map((_, idx) => (
-                        <div key={idx} className={`h-4 w-4 ${idx < (hospital.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}>
+                        <span key={idx} className={`text-sm ${idx < (hospital.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}>
                           ★
-                        </div>
+                        </span>
                       ))}
                       <span className="ml-2 text-sm text-gray-600">{hospital.rating?.toFixed(1) || 'N/A'}</span>
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(hospital.vicinity)}`)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
-                      >
-                        <Navigation className="h-4 w-4 mr-1" />
-                        Directions
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(hospital.vicinity)}`)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
+                    >
+                      <Navigation className="h-4 w-4 mr-1" />
+                      Directions
+                    </button>
                   </div>
                 </div>
               </div>
@@ -246,7 +240,6 @@ const EmergencyServices: React.FC = () => {
           )}
         </div>
 
-        {/* Medical Info Section */}
         {medicalInfo && (
           <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
             <h3 className="text-lg font-medium text-yellow-800 mb-4">Your Medical Information</h3>
@@ -262,7 +255,7 @@ const EmergencyServices: React.FC = () => {
               <div>
                 <p className="font-medium text-yellow-800">Current Medications:</p>
                 <p className="text-yellow-700">
-                  {medicalInfo.currentMedications && medicalInfo.currentMedications.length > 0
+                  {medicalInfo.currentMedications?.length
                     ? medicalInfo.currentMedications.join(', ')
                     : 'None'}
                 </p>
