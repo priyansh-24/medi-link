@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import Layout from './Layout';
-import { FileText, Download, Printer, Save, Clock, AlertCircle, CheckCircle, Pill } from 'lucide-react';
+import {Download, Printer, Clock, AlertCircle, CheckCircle, Pill } from 'lucide-react';
 import { getDatabase, ref, onValue } from "firebase/database";
 import { useEffect } from "react";
 import { getAuth } from "firebase/auth";
-import { db } from './lib/Firebase';
 
 
  

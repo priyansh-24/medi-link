@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
-import { Calendar, Clock, User, Stethoscope, MapPin, Star, Bot } from 'lucide-react';
+import {Clock, Stethoscope, MapPin, Star, Bot } from 'lucide-react';
 import { ref, push } from 'firebase/database';
 import { auth, db } from './lib/Firebase'; 
 

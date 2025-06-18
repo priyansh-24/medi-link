@@ -3,7 +3,6 @@ import Layout from './Layout';
 import { Phone, Mail, MapPin, Activity, Edit2, Save } from 'lucide-react';
 import { auth, db } from './lib/Firebase'; 
 import { ref, set, get } from 'firebase/database';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 
 const PatientProfile: React.FC = () => {
@@ -25,23 +24,26 @@ const PatientProfile: React.FC = () => {
   });
 
   const uid = auth.currentUser?.uid;
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !uid) return;
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uid) return;
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
 
-    const storage = getStorage();
-    const fileRef = storageRef(storage, `profilePhotos/${uid}/${file.name}`);
+        // Save base64 to profile state
+        setProfile(prev => ({ ...prev, photoURL: base64String }));
 
-    try {
-      await uploadBytes(fileRef, file);
-      const downloadURL = await getDownloadURL(fileRef);
-      setProfile(prev => ({ ...prev, photoURL: downloadURL }));
-    } catch (error) {
-      console.error("Photo upload error:", error);
-      alert("Failed to upload photo.");
-    }
-  };
+        // Save to Realtime Database
+        await set(ref(db, `users/${uid}/photoURL`), base64String);
+        console.log("Base64 photo saved to database");
+      };
+
+      reader.readAsDataURL(file);
+    };
+
+
 
   useEffect(() => {
     if (!uid) return;
