@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
 import { Calendar, Clock, User, Stethoscope, MapPin, Star, Bot } from 'lucide-react';
-import { ref, push } from 'firebase/database';
+import { ref, push, onValue } from 'firebase/database';
 import { auth, db } from './lib/Firebase'; 
 
 const BookAppointment: React.FC = () => {
@@ -16,6 +16,7 @@ const BookAppointment: React.FC = () => {
     preferredTime: '',
     doctorId: ''
   });
+
 
   const specialties = [
     { id: 'general', name: 'General Medicine', description: 'General health checkups and common conditions' },
@@ -33,45 +34,27 @@ const BookAppointment: React.FC = () => {
     { id: 'emergency', name: 'Emergency', description: 'Severe symptoms, immediate attention', color: 'bg-red-100 text-red-800' }
   ];
 
-  const aiRecommendedDoctors = [
-    {
-      id: '1',
-      name: 'Dr. Sarah Johnson',
-      specialty: 'Cardiology',
-      rating: 4.9,
-      experience: '15 years',
-      location: 'City General Hospital',
-      nextAvailable: 'Tomorrow 2:00 PM',
-      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face',
-      aiMatch: 95,
-      reasons: ['Specializes in your condition', 'Excellent patient reviews', 'Available soon']
-    },
-    {
-      id: '2',
-      name: 'Dr. Michael Chen',
-      specialty: 'General Medicine',
-      rating: 4.8,
-      experience: '12 years',
-      location: 'St. Mary\'s Medical Center',
-      nextAvailable: 'Friday 10:30 AM',
-      image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face',
-      aiMatch: 92,
-      reasons: ['Great for general health concerns', 'Comprehensive approach', 'Highly recommended']
-    },
-    {
-      id: '3',
-      name: 'Dr. Emily Rodriguez',
-      specialty: 'Internal Medicine',
-      rating: 4.7,
-      experience: '10 years',
-      location: 'Regional Medical Center',
-      nextAvailable: 'Monday 3:15 PM',
-      image: 'https://images.unsplash.com/photo-1594824475317-58bbc70b63db?w=150&h=150&fit=crop&crop=face',
-      aiMatch: 88,
-      reasons: ['Excellent diagnostic skills', 'Patient-focused care', 'Modern treatment approaches']
-    }
-  ];
 
+ 
+  const [aiRecommendedDoctors, setAiRecommendedDoctors] = useState<any[]>([]);
+
+  useEffect(() => {
+    const doctorsRef = ref(db, 'Doctors');
+    const unsubscribe = onValue(doctorsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const doctorList = Object.entries(data).map(([id, doctor]: any) => ({
+          id,
+          ...doctor,
+        }));
+        setAiRecommendedDoctors(doctorList);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+
+  
   const timeSlots = [
     '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
     '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'
@@ -243,75 +226,83 @@ const BookAppointment: React.FC = () => {
                 </div>
               </div>
             )}
+            
+      {/* Step 4: AI Doctor Recommendations */}
+      {step === 4 && (
+        <div className="space-y-6">
+          <div className="flex items-center mb-6">
+            <Bot className="h-6 w-6 text-blue-600 mr-2" />
+            <h3 className="text-lg font-medium text-gray-900">AI Recommended Doctors</h3>
+          </div>
+          <p className="text-gray-600 mb-6">Based on your symptoms and preferences, here are our top recommendations:</p>
 
-            {/* Step 4: AI Doctor Recommendations */}
-            {step === 4 && (
-              <div className="space-y-6">
-                <div className="flex items-center mb-6">
-                  <Bot className="h-6 w-6 text-blue-600 mr-2" />
-                  <h3 className="text-lg font-medium text-gray-900">AI Recommended Doctors</h3>
-                </div>
-                <p className="text-gray-600 mb-6">Based on your symptoms and preferences, here are our top recommendations:</p>
-
-                <div className="space-y-4">
-                  {aiRecommendedDoctors.map((doctor) => (
-                    <div
-                      key={doctor.id}
-                      className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
-                        appointmentData.doctorId === doctor.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setAppointmentData({ ...appointmentData, doctorId: doctor.id })}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start">
-                          <img
-                            src={doctor.image}
-                            alt={doctor.name}
-                            className="h-16 w-16 rounded-full mr-4"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center mb-2">
-                              <h4 className="text-lg font-semibold text-gray-900">{doctor.name}</h4>
-                              <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                {doctor.aiMatch}% Match
-                              </span>
-                            </div>
-                            <div className="flex items-center text-gray-600 mb-2">
-                              <Stethoscope className="h-4 w-4 mr-1" />
-                              <span className="text-sm">{doctor.specialty}</span>
-                              <span className="mx-2">•</span>
-                              <span className="text-sm">{doctor.experience}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600 mb-2">
-                              <MapPin className="h-4 w-4 mr-1" />
-                              <span className="text-sm">{doctor.location}</span>
-                            </div>
-                            <div className="flex items-center mb-3">
-                              <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                              <span className="text-sm font-medium">{doctor.rating}</span>
-                              <Clock className="h-4 w-4 text-gray-400 ml-3 mr-1" />
-                              <span className="text-sm text-gray-600">{doctor.nextAvailable}</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {doctor.reasons.map((reason, index) => (
-                                <span
-                                  key={index}
-                                  className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                                >
-                                  {reason}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+          {aiRecommendedDoctors.length > 0 ? (
+            <div className="space-y-4">
+              {aiRecommendedDoctors.map((doctor) => (
+                <div
+                  key={doctor.id}
+                  className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
+                    appointmentData.doctorId === doctor.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setAppointmentData({ ...appointmentData, doctorId: doctor.id })}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start">
+                      <img
+                        src={doctor.image}
+                        alt={doctor.name}
+                        className="h-16 w-16 rounded-full mr-4"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <h4 className="text-lg font-semibold text-gray-900">{doctor.name}</h4>
+                          {doctor.aiMatch && (
+                            <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                              {doctor.aiMatch}% Match
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center text-gray-600 mb-2">
+                          <Stethoscope className="h-4 w-4 mr-1" />
+                          <span className="text-sm">{doctor.specialty}</span>
+                          <span className="mx-2">•</span>
+                          <span className="text-sm">{doctor.experience}</span>
+                        </div>
+                        <div className="flex items-center text-gray-600 mb-2">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          <span className="text-sm">{doctor.location}</span>
+                        </div>
+                        <div className="flex items-center mb-3">
+                          <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                          <span className="text-sm font-medium">{doctor.rating}</span>
+                          <Clock className="h-4 w-4 text-gray-400 ml-3 mr-1" />
+                          <span className="text-sm text-gray-600">{doctor.nextAvailable}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {(doctor.reasons ?? []).map((reason: string, index: number) => (
+                            <span
+                              key={index}
+                              className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                            >
+                              {reason}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No doctors found. Please try again later.</p>
+          )}
+        </div>
+      )}
+
+
 
             {/* Navigation Buttons */}
             <div className="flex justify-between mt-8">
