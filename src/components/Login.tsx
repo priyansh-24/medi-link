@@ -27,6 +27,12 @@ const Login: React.FC = () => {
     return () => unsubscribe();
   }, [navigate]);
 
+  onAuthStateChanged(auth, (user) => {
+  if (user) {
+    navigate('/dashboard');
+  }
+});
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
