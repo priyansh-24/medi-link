@@ -8,8 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-
 
 
 const Prescriptions: React.FC = () => {
@@ -74,15 +72,9 @@ const Prescriptions: React.FC = () => {
 
   const handlePrint = () => window.print();
 
-  const uploadPrescriptionToFirebase = async (blob: Blob, filename: string): Promise<string> => {
-  const storage = getStorage();
-  const fileRef = storageRef(storage, `prescriptions/${filename}`);
-  await uploadBytes(fileRef, blob);
-  const url = await getDownloadURL(fileRef);
-  return url;
-};
-const handleDownloadAndGenerateQR = (prescription: any) => {
-  const doc = new jsPDF();
+
+  const handleDownloadAndGenerateQR = (prescription: any) => {
+    const doc = new jsPDF();
 
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(22);
@@ -183,17 +175,6 @@ const handleDownloadAndGenerateQR = (prescription: any) => {
   doc.save(`${prescription.medication || 'prescription'}.pdf`);
 };
 
-const handleQR = (prescription: any) => {
-  const data = {
-    medication: prescription.medication,
-    dosage: prescription.dosage,
-    doctor: prescription.doctor,
-    prescribedDate: prescription.prescribedDate,
-    expiryDate: prescription.expiryDate,
-  };
-  setQRData(JSON.stringify(data));
-  setShowQR(true);
-};
 
 
   const prescriptions = activeTab === 'current' ? currentPrescriptions : pastPrescriptions;
