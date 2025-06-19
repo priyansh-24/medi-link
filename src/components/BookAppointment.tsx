@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Layout from './Layout';
 import { Clock, Stethoscope, MapPin, Star, Bot, Upload, X, Mic, MicOff } from 'lucide-react';
 import { ref, push, onValue } from 'firebase/database';
 import { auth, db } from './lib/Firebase';
 
 const BookAppointment: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [appointmentData, setAppointmentData] = useState({
@@ -30,19 +32,18 @@ const BookAppointment: React.FC = () => {
   const isMountedRef = useRef(false);
 
   const specialties = [
-    { id: 'general', name: 'General Medicine', description: 'General health checkups and common conditions' },
-    { id: 'cardiology', name: 'Cardiology', description: 'Heart and cardiovascular conditions' },
-    { id: 'dermatology', name: 'Dermatology', description: 'Skin, hair, and nail conditions' },
-    { id: 'orthopedics', name: 'Orthopedics', description: 'Bone, joint, and muscle issues' },
-    { id: 'neurology', name: 'Neurology', description: 'Brain and nervous system disorders' },
-    { id: 'pediatrics', name: 'Pediatrics', description: 'Healthcare for children and adolescents' }
+    { id: 'general', name: t('bookAppointment.specialties.general.name'), description: t('bookAppointment.specialties.general.description') },
+    { id: 'cardiology', name: t('bookAppointment.specialties.cardiology.name'), description: t('bookAppointment.specialties.cardiology.description') },
+    { id: 'dermatology', name: t('bookAppointment.specialties.dermatology.name'), description: t('bookAppointment.specialties.dermatology.description') },
+    { id: 'orthopedics', name: t('bookAppointment.specialties.orthopedics.name'), description: t('bookAppointment.specialties.orthopedics.description') },
+    { id: 'neurology', name: t('bookAppointment.specialties.neurology.name'), description: t('bookAppointment.specialties.neurology.description') },
+    { id: 'pediatrics', name: t('bookAppointment.specialties.pediatrics.name'), description: t('bookAppointment.specialties.pediatrics.description') }
   ];
-
   const urgencyLevels = [
-    { id: 'routine', name: 'Routine Care', description: 'Regular checkup or non-urgent concern', color: 'bg-green-100 text-green-800' },
-    { id: 'soon', name: 'Soon', description: 'Concerning symptoms, within a week', color: 'bg-yellow-100 text-yellow-800' },
-    { id: 'urgent', name: 'Urgent', description: 'Significant symptoms, within 24-48 hours', color: 'bg-orange-100 text-orange-800' },
-    { id: 'emergency', name: 'Emergency', description: 'Severe symptoms, immediate attention', color: 'bg-red-100 text-red-800' }
+    { id: 'routine', name: t('bookAppointment.urgency.routine.name'), description: t('bookAppointment.urgency.routine.description'), color: 'bg-green-100 text-green-800' },
+    { id: 'soon', name: t('bookAppointment.urgency.soon.name'), description: t('bookAppointment.urgency.soon.description'), color: 'bg-yellow-100 text-yellow-800' },
+    { id: 'urgent', name: t('bookAppointment.urgency.urgent.name'), description: t('bookAppointment.urgency.urgent.description'), color: 'bg-orange-100 text-orange-800' },
+    { id: 'emergency', name: t('bookAppointment.urgency.emergency.name'), description: t('bookAppointment.urgency.emergency.description'), color: 'bg-red-100 text-red-800' }
   ];
 
   const [allDoctors, setAllDoctors] = useState<any[]>([]);
@@ -528,7 +529,7 @@ const BookAppointment: React.FC = () => {
           )}
 
           <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-gray-900">Book an Appointment</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">{t('bookAppointment.title')}</h1>
             <div className="mt-4 flex items-center">
               {[1, 2, 3, 4].map((number) => (
                 <div key={number} className="flex items-center">
@@ -547,10 +548,10 @@ const BookAppointment: React.FC = () => {
             </div>
             <div className="mt-2 text-sm text-gray-600">
               Step {step} of 4: {
-                step === 1 ? 'Tell us about your concern' :
-                step === 2 ? 'Choose urgency level' :
-                step === 3 ? 'Select preferred time' :
-                'Choose your doctor'
+                step === 1 ? t('bookAppointment.steps.symptoms') :
+                step === 2 ? t('bookAppointment.steps.urgency') :
+                step === 3 ? t('bookAppointment.steps.time') :
+                t('bookAppointment.steps.doctor')
               }
             </div>
           </div>
@@ -559,29 +560,29 @@ const BookAppointment: React.FC = () => {
             {step === 1 && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">What brings you in today?</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('bookAppointment.symptomsTitle')}</h3>
                   <textarea
                     value={appointmentData.symptoms}
                     onChange={(e) => setAppointmentData({ ...appointmentData, symptoms: e.target.value })}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={4}
-                    placeholder="Describe your symptoms or reason for visit..."
+                    placeholder={t('bookAppointment.symptomsPlaceholder')}
                     required
                   />
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Upload symptom photo (optional)</h3>
-                  <p className="text-sm text-gray-500 mb-4">Max size: 500KB (JPEG, PNG)</p>
-                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('bookAppointment.uploadTitle')}</h3>
+                  <p className="text-sm text-gray-500 mb-4">{t('bookAppointment.uploadDescription')}</p>
+
                   <div className="flex items-center">
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-3 text-gray-400" />
                         <p className="mb-2 text-sm text-gray-500">
-                          <span className="font-semibold">Click to upload</span> or drag and drop
+                          <span className="font-semibold">{t('bookAppointment.uploadClick')}</span> {t('bookAppointment.uploadDrag')}
                         </p>
-                        <p className="text-xs text-gray-500">PNG, JPG (MAX. 500KB)</p>
+                        <p className="text-xs text-gray-500">{t('bookAppointment.uploadFormats')}</p>
                       </div>
                       <input 
                         type="file" 
@@ -598,22 +599,26 @@ const BookAppointment: React.FC = () => {
                   )}
 
                   {imageError && (
+                    <div className="mt-2 text-sm text-blue-600">{t('bookAppointment.uploadProcessing')}</div>
+                  )}
+
+                  {imageError && (
                     <div className="mt-2 text-sm text-red-600">{imageError}</div>
                   )}
 
                   {appointmentData.photoURL && (
                     <div className="mt-4 relative">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Uploaded Image:</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">{t('bookAppointment.uploadedImage')}</p>
                       <div className="relative inline-block">
                         <img 
                           src={appointmentData.photoURL} 
-                          alt="Symptom preview" 
+                          alt={t('bookAppointment.imageAlt')} 
                           className="h-32 object-contain border rounded"
                         />
                         <button
                           onClick={removeImage}
                           className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 -mt-2 -mr-2"
-                          aria-label="Remove image"
+                          aria-label={t('bookAppointment.removeImage')}
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -623,7 +628,7 @@ const BookAppointment: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Which specialty do you need?</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('bookAppointment.specialtyTitle')}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {specialties.map((specialty) => (
                       <button
@@ -644,9 +649,11 @@ const BookAppointment: React.FC = () => {
               </div>
             )}
 
+
+         {/* Step 2: Urgency Level */}
             {step === 2 && (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">How urgent is this appointment?</h3>
+                <h3 className="text-lg font-medium text-gray-900">{t('bookAppointment.urgencyTitle')}</h3>
                 <div className="space-y-3">
                   {urgencyLevels.map((level) => (
                     <button
@@ -673,13 +680,14 @@ const BookAppointment: React.FC = () => {
               </div>
             )}
 
+            {/* Step 3: Date and Time Preference */}
             {step === 3 && (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">When would you like to schedule?</h3>
+                <h3 className="text-lg font-medium text-gray-900">{t('bookAppointment.scheduleTitle')}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('bookAppointment.preferredDate')}</label>
                     <input
                       type="date"
                       value={appointmentData.preferredDate}
@@ -691,7 +699,7 @@ const BookAppointment: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Time</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('bookAppointment.preferredTime')}</label>
                     <div className="grid grid-cols-3 gap-2">
                       {timeSlots.map((time) => (
                         <button
@@ -712,16 +720,17 @@ const BookAppointment: React.FC = () => {
               </div>
             )}
             
+            {/* Step 4: AI Doctor Recommendations */}
             {step === 4 && (
               <div className="space-y-6">
                 <div className="flex items-center mb-6">
                   <Bot className="h-6 w-6 text-blue-600 mr-2" />
-                  <h3 className="text-lg font-medium text-gray-900">AI Recommended Doctors</h3>
+                  <h3 className="text-lg font-medium text-gray-900">{t('bookAppointment.aiRecommendations')}</h3>
                 </div>
                 <p className="text-gray-600 mb-6">
                   {appointmentData.specialty ? 
-                    `Showing ${specialties.find(s => s.id === appointmentData.specialty)?.name} specialists first:` : 
-                    "Here are our available doctors:"}
+                    t('bookAppointment.showingSpecialists', { specialty: specialties.find(s => s.id === appointmentData.specialty)?.name }) : 
+                    t('bookAppointment.availableDoctors')}
                 </p>
 
                 {aiRecommendedDoctors.length > 0 ? (
@@ -751,7 +760,7 @@ const BookAppointment: React.FC = () => {
                                 <h4 className="text-lg font-semibold text-gray-900">{doctor.name}</h4>
                                 {doctor.specialty.toLowerCase().includes(appointmentData.specialty.toLowerCase()) && (
                                   <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                    AI Matched
+                                    {t('bookAppointment.aiMatched')}
                                   </span>
                                 )}
                               </div>
@@ -788,18 +797,19 @@ const BookAppointment: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500">No doctors found. Please try again later.</p>
+                  <p className="text-gray-500">{t('bookAppointment.noDoctors')}</p>
                 )}
               </div>
             )}
 
+            {/* Navigation Buttons */}
             <div className="flex justify-between mt-8">
               <button
                 onClick={handleBack}
                 disabled={step === 1}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Back
+                {t('common.back')}
               </button>
               
               {step < 4 ? (
@@ -812,7 +822,7 @@ const BookAppointment: React.FC = () => {
                   }
                   className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t('common.next')}
                 </button>
               ) : (
                 <button
@@ -820,7 +830,7 @@ const BookAppointment: React.FC = () => {
                   disabled={!appointmentData.doctorId}
                   className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Book Appointment
+                  {t('bookAppointment.bookButton')}
                 </button>
               )}
             </div>
