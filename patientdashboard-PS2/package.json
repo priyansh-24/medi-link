@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://priyansh-24.github.io/medi-link",
+  "homepage": "https://priyansh-24.github.io/medi-link/patientdashboard-PS2",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
