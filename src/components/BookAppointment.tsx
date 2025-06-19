@@ -460,18 +460,18 @@ const BookAppointment: React.FC = () => {
     switch (step) {
       case 1:
         return `Please describe your symptoms and select a specialty. 
-                You can say things like "My symptoms are headache and fever" 
+                You can type things like "My symptoms are headache and fever" 
                 or "I need a dermatologist".`;
       case 2:
         return `Please select how urgent your appointment is. 
-                You can say "routine care", "soon", "urgent", or "emergency".`;
+                You can type "routine care", "soon", "urgent", or "emergency".`;
       case 3:
         return `Please select a date and time for your appointment. 
-                You can say things like "date is June 15th" or "time is 2:30 PM".`;
+                You can type things like "date is June 15th" or "time is 2:30 PM".`;
       case 4:
         return `Please select a doctor from the recommendations. 
-                You can say "select doctor" followed by the doctor's name. 
-                Or say "book appointment" to confirm.`;
+                You can type "select doctor" followed by the doctor's name. 
+                Or type "book appointment" to confirm.`;
       default:
         return '';
     }
