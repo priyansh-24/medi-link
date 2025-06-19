@@ -5,6 +5,7 @@
   "type": "module",
   "homepage": "https://priyansh-24.github.io/medi-link",
   "scripts": {
+    "postinstall": "chmod +x node_modules/.bin/vite",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
