@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
 import { Clock, Stethoscope, MapPin, Star, Bot, Upload, X, Mic, MicOff } from 'lucide-react';
@@ -22,9 +22,12 @@ const BookAppointment: React.FC = () => {
   const [isVoiceAssistantOn, setIsVoiceAssistantOn] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [assistantMessage, setAssistantMessage] = useState('');
+  
+  // Refs for stable references
   const recognitionRef = useRef<any>(null);
-  const sleepTimerRef = useRef<any>(null);
-  const speechSynthesisRef = useRef<any>(null);
+  const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
+  const isMountedRef = useRef(false);
 
   const specialties = [
     { id: 'general', name: 'General Medicine', description: 'General health checkups and common conditions' },
@@ -49,7 +52,66 @@ const BookAppointment: React.FC = () => {
     '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'
   ];
 
+  // Initialize speech recognition
+  const initializeSpeechRecognition = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn('Speech Recognition not supported');
+      return;
+    }
+
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = true;
+    recognitionRef.current.interimResults = true;
+    recognitionRef.current.lang = 'en-US';
+
+    recognitionRef.current.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0])
+        .map((result) => result.transcript)
+        .join('');
+      
+      handleVoiceCommand(transcript);
+    };
+
+    recognitionRef.current.onerror = (event: any) => {
+      console.error('Voice recognition error', event.error);
+      if (isMountedRef.current) {
+        setIsListening(false);
+        setAssistantMessageWithSpeech('Sorry, I had trouble hearing you. Please try again.');
+      }
+    };
+
+    recognitionRef.current.onend = () => {
+      if (isMountedRef.current && isVoiceAssistantOn && isListening) {
+        try {
+          recognitionRef.current.start();
+        } catch (e) {
+          console.error('Recognition restart error:', e);
+          if (isMountedRef.current) {
+            setIsListening(false);
+            setAssistantMessageWithSpeech('Voice recognition stopped. Say "Hey Assistant" to restart.');
+          }
+        }
+      }
+    };
+  }, []);
+
+  // Initialize speech synthesis
+  const initializeSpeechSynthesis = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      speechSynthesisRef.current = window.speechSynthesis;
+    }
+  }, []);
+
+  // Component mount/unmount
   useEffect(() => {
+    isMountedRef.current = true;
+    initializeSpeechRecognition();
+    initializeSpeechSynthesis();
+
     const doctorsRef = ref(db, 'Doctors');
     const unsubscribe = onValue(doctorsRef, (snapshot) => {
       const data = snapshot.val();
@@ -64,9 +126,36 @@ const BookAppointment: React.FC = () => {
         setAiRecommendedDoctors(doctorList);
       }
     });
-    return () => unsubscribe();
-  }, []);
+    
+    return () => {
+      isMountedRef.current = false;
+      unsubscribe();
+      
+      // Cleanup recognition
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+          recognitionRef.current.onresult = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.onend = null;
+        } catch (e) {
+          console.error('Recognition cleanup error:', e);
+        }
+      }
+      
+      // Cleanup timers
+      if (sleepTimerRef.current) {
+        clearTimeout(sleepTimerRef.current);
+      }
+      
+      // Cleanup synthesis
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    };
+  }, [initializeSpeechRecognition, initializeSpeechSynthesis]);
 
+  // Filter doctors by specialty
   useEffect(() => {
     if (appointmentData.specialty && allDoctors.length > 0) {
       const specialtyDoctors = allDoctors.filter(doctor => 
@@ -81,49 +170,38 @@ const BookAppointment: React.FC = () => {
     }
   }, [appointmentData.specialty, allDoctors]);
 
+  // Handle voice assistant toggle
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Initialize Speech Recognition
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = 'en-US';
+    if (!isMountedRef.current) return;
 
-        recognitionRef.current.onresult = (event: any) => {
-          const transcript = Array.from(event.results)
-            .map((result: any) => result[0])
-            .map((result) => result.transcript)
-            .join('');
-          
-          handleVoiceCommand(transcript);
-        };
-
-        recognitionRef.current.onerror = (event: any) => {
-          console.error('Voice recognition error', event.error);
-          setIsListening(false);
-          setAssistantMessageWithSpeech('Sorry, I had trouble hearing you. Please try again.');
-        };
-
-        recognitionRef.current.onend = () => {
-          if (isVoiceAssistantOn && isListening) {
-            try {
-              recognitionRef.current.start();
-            } catch (e) {
-              console.error('Failed to restart recognition:', e);
-            }
-          }
-        };
-      }
-
-      // Initialize Speech Synthesis
-      speechSynthesisRef.current = window.speechSynthesis;
-    }
-
-    return () => {
+    if (isVoiceAssistantOn) {
+      const welcomeMessage = `Welcome to the voice assistant. I'll help you book your appointment. 
+        ${getStepInstructions()}`;
+      setAssistantMessageWithSpeech(welcomeMessage);
+      
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+          resetSleepTimer();
+        } catch (e) {
+          console.error('Start error:', e);
+          setAssistantMessageWithSpeech('Could not start voice recognition. Please check your microphone permissions.');
+          setIsListening(false);
+        }
+      } else {
+        setAssistantMessageWithSpeech('Voice recognition not supported in your browser. Try Chrome or Edge.');
+        setIsListening(false);
+      }
+    } else {
+      setIsListening(false);
+      setAssistantMessage('');
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error('Stop error:', e);
+        }
       }
       if (sleepTimerRef.current) {
         clearTimeout(sleepTimerRef.current);
@@ -131,10 +209,17 @@ const BookAppointment: React.FC = () => {
       if (speechSynthesisRef.current) {
         speechSynthesisRef.current.cancel();
       }
-    };
-  }, [step, appointmentData, isVoiceAssistantOn, isListening]);
+    }
+  }, [isVoiceAssistantOn]);
 
-  const speakMessage = (message: string) => {
+  // Update instructions when step changes
+  useEffect(() => {
+    if (isVoiceAssistantOn && isMountedRef.current) {
+      setAssistantMessageWithSpeech(getStepInstructions());
+    }
+  }, [step, isVoiceAssistantOn]);
+
+  const speakMessage = useCallback((message: string) => {
     if (!isVoiceAssistantOn || !speechSynthesisRef.current) return;
     
     speechSynthesisRef.current.cancel();
@@ -143,27 +228,31 @@ const BookAppointment: React.FC = () => {
     utterance.pitch = 1;
     utterance.volume = 1;
     speechSynthesisRef.current.speak(utterance);
-  };
+  }, [isVoiceAssistantOn]);
 
-  const setAssistantMessageWithSpeech = (message: string) => {
+  const setAssistantMessageWithSpeech = useCallback((message: string) => {
     setAssistantMessage(message);
     speakMessage(message);
-  };
+  }, [speakMessage]);
 
-  const resetSleepTimer = () => {
+  const resetSleepTimer = useCallback(() => {
     if (sleepTimerRef.current) {
       clearTimeout(sleepTimerRef.current);
     }
     sleepTimerRef.current = setTimeout(() => {
-      if (isListening) {
+      if (isListening && isMountedRef.current) {
         setAssistantMessageWithSpeech("I'm going to sleep now. Say 'Hey Assistant' to wake me up.");
         setIsListening(false);
         if (recognitionRef.current) {
-          recognitionRef.current.stop();
+          try {
+            recognitionRef.current.stop();
+          } catch (e) {
+            console.error('Sleep timer stop error:', e);
+          }
         }
       }
     }, 60000); // 60 seconds of inactivity
-  };
+  }, [isListening, setAssistantMessageWithSpeech]);
 
   const calculateMatchPercentage = (doctor: any) => {
     let match = 50;
@@ -273,7 +362,11 @@ const BookAppointment: React.FC = () => {
       if (!isListening) {
         setIsListening(true);
         if (recognitionRef.current) {
-          recognitionRef.current.start();
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            console.error('Wake word start error:', e);
+          }
         }
         setAssistantMessageWithSpeech("I'm listening now. How can I help you?");
         resetSleepTimer();
@@ -359,42 +452,10 @@ const BookAppointment: React.FC = () => {
   };
 
   const toggleVoiceAssistant = () => {
-    if (!isVoiceAssistantOn) {
-      setIsVoiceAssistantOn(true);
-      setIsListening(true);
-      const welcomeMessage = `Welcome to the voice assistant. I'll help you book your appointment. 
-        ${getStepInstructions()}`;
-      setAssistantMessageWithSpeech(welcomeMessage);
-      
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-          resetSleepTimer();
-        } catch (e) {
-          setAssistantMessageWithSpeech('Could not start voice recognition. Please check your microphone permissions.');
-          setIsListening(false);
-        }
-      } else {
-        setAssistantMessageWithSpeech('Voice recognition not supported in your browser. Try Chrome or Edge.');
-        setIsListening(false);
-      }
-    } else {
-      setIsVoiceAssistantOn(false);
-      setIsListening(false);
-      setAssistantMessage('');
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (sleepTimerRef.current) {
-        clearTimeout(sleepTimerRef.current);
-      }
-      if (speechSynthesisRef.current) {
-        speechSynthesisRef.current.cancel();
-      }
-    }
+    setIsVoiceAssistantOn(prev => !prev);
   };
 
-  const getStepInstructions = () => {
+  const getStepInstructions = useCallback(() => {
     switch (step) {
       case 1:
         return `Please describe your symptoms and select a specialty. 
@@ -413,7 +474,7 @@ const BookAppointment: React.FC = () => {
       default:
         return '';
     }
-  };
+  }, [step]);
 
   useEffect(() => {
     if (isVoiceAssistantOn) {
@@ -446,7 +507,7 @@ const BookAppointment: React.FC = () => {
                 <MicOff className="h-5 w-5 mr-2" />
               )}
               {isVoiceAssistantOn ? 
-                (isListening ? 'Listening...' : 'Voice Assistant ON') : 
+                (isListening ? 'Voice Assistant ON' : 'Voice Assistant ON') : 
                 'Voice Assistant'}
               {isListening && (
                 <span className="ml-2 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
