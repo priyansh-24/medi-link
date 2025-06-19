@@ -8,6 +8,8 @@ import BookAppointment from './components/BookAppointment';
 import DoctorProfile from './components/DoctorProfile';
 import VideoCall from './components/VideoCall';
 import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
 
 function App() {
   return (
@@ -16,13 +18,13 @@ function App() {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<PatientProfile />} />
-            <Route path="/emergency" element={<EmergencyServices />} />
-            <Route path="/prescriptions" element={<Prescriptions />} />
-            <Route path="/book-appointment" element={<BookAppointment />} />
-            <Route path="/doctor/:id" element={<DoctorProfile />} />
-            <Route path="/video-call/:appointmentId" element={<VideoCall />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><PatientProfile /></ProtectedRoute>} />
+            <Route path="/emergency" element={<ProtectedRoute><EmergencyServices /></ProtectedRoute>} />
+            <Route path="/prescriptions" element={<ProtectedRoute><Prescriptions /></ProtectedRoute>} />
+            <Route path="/book-appointment" element={<ProtectedRoute><BookAppointment /></ProtectedRoute>} />
+            <Route path="/doctor/:id" element={<ProtectedRoute><DoctorProfile /></ProtectedRoute>} />
+            <Route path="/video-call/:appointmentId" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
           </Routes>
         </div>
       </Router>

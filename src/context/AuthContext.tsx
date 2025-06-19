@@ -94,8 +94,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  <AuthContext.Provider value={value}>
+    {loading ? (
+      <div className="min-h-screen flex justify-center items-center">
+        <span className="text-blue-600 font-medium">Loading...</span>
+      </div>
+    ) : (
+      children
+    )}
+  </AuthContext.Provider>
+);
+
 };
