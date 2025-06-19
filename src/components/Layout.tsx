@@ -35,9 +35,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   
-
   useEffect(() => {
-    if (!user) {
+    if (!user ) {
       navigate('/');
     }
   }, [user, navigate]);

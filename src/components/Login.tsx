@@ -9,6 +9,7 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import { auth } from './lib/Firebase';
+import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -17,10 +18,18 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+
+
+useEffect(() => {
+  if (user && isAuthenticated) {
+    navigate('/dashboard');
+  }
+}, [user, navigate]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && isAuthenticated) {
         navigate('/dashboard');
       }
     });
@@ -28,7 +37,7 @@ const Login: React.FC = () => {
   }, [navigate]);
 
   onAuthStateChanged(auth, (user) => {
-  if (user) {
+  if (user && isAuthenticated) {
     navigate('/dashboard');
   }
 });
