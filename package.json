@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.8",
+    "vite": "^6.3.5",
     "axios": "^1.10.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
