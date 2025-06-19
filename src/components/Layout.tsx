@@ -1,6 +1,7 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Analytics } from "@vercel/analytics/next"
 import axios from 'axios';
 import {
   Heart,
