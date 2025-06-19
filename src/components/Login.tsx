@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, User, Lock, Loader2 } from 'lucide-react';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { auth } from './lib/Firebase'; // adjust path as needed
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { auth } from './lib/Firebase';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const navigate = useNavigate();
 
-  // Redirect if already logged in
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -27,14 +33,34 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      if (isRegisterMode) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
       navigate('/dashboard');
     } catch (err: any) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Email already in use.');
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password.');
       } else {
         setError('An error occurred. Please try again.');
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setError('');
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Google sign-in failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -49,8 +75,12 @@ const Login: React.FC = () => {
               <Heart className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">MediLink</h2>
-          <p className="mt-2 text-sm text-gray-600">Healthcare Management Platform</p>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            {isRegisterMode ? 'Create Account' : 'Sign In to MediLink'}
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            {isRegisterMode ? 'Start managing your health.' : 'Healthcare Management Platform'}
+          </p>
         </div>
 
         <div className="bg-white py-8 px-6 shadow-xl rounded-lg">
@@ -111,17 +141,39 @@ const Login: React.FC = () => {
                 disabled={isLoading}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  'Sign In'
-                )}
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : isRegisterMode ? 'Create Account' : 'Sign In'}
+              </button>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              >
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Sign in with Google'}
               </button>
             </div>
 
             <div className="text-center">
+              <p className="text-sm text-gray-600">
+                {isRegisterMode ? "Already have an account?" : "Don’t have an account?"}{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterMode(!isRegisterMode)}
+                  className="text-blue-600 hover:underline font-medium"
+                >
+                  {isRegisterMode ? 'Sign In' : 'Create Account'}
+                </button>
+              </p>
+            </div>
+
+            <div className="text-center">
               <p className="text-xs text-gray-500">
-                Use your registered email and password to log in.
+                {isRegisterMode
+                  ? 'Create a new MediLink account to get started.'
+                  : 'Use your registered email and password to log in.'}
               </p>
             </div>
           </form>
