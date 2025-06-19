@@ -20,5 +20,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["project/src", "proproject/server.jslib", "server.js"]
+  "include": ["src", "server.js"]
 }
