@@ -191,9 +191,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <button
                   onClick={() => dispatch(toggleLanguage())}
                   className="mr-4 ml-1 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                  aria-label="Switch Language"
+                  aria-label="lang"
                 >
-                  {t('layout.SwitchLang', { defaultValue: 'Switch Language' })}
+                  {t('layout.SwitchLang', { defaultValue: 'Language' })}
                 </button>
 
 
