@@ -1,0 +1,256 @@
+{
+  "bookAppointment": {
+    "title": "अपॉइंटमेंट बुक करें",
+    "stepIndicator": "चरण {step} {total} में से",
+    "steps": {
+      "symptoms": "अपनी समस्या बताएं",
+      "urgency": "तात्कालिकता चुनें",
+      "time": "पसंदीदा समय चुनें",
+      "doctor": "अपने डॉक्टर को चुनें"
+    },
+    "symptomsTitle": "आज आप किस समस्या के लिए आए हैं?",
+    "symptomsPlaceholder": "अपने लक्षण या आने का कारण बताएं...",
+    "uploadTitle": "लक्षणों की तस्वीर अपलोड करें (वैकल्पिक)",
+    "uploadDescription": "अधिकतम आकार: 500KB (JPEG, PNG)",
+    "uploadClick": "अपलोड करने के लिए क्लिक करें",
+    "uploadDrag": "या फाइल को यहाँ खींचें",
+    "uploadFormats": "PNG, JPG (अधिकतम 500KB)",
+    "uploadProcessing": "तस्वीर प्रोसेस हो रही है...",
+    "uploadedImage": "अपलोड की गई तस्वीर:",
+    "imageAlt": "लक्षणों का पूर्वावलोकन",
+    "removeImage": "तस्वीर हटाएं",
+    "specialtyTitle": "आपको किस विशेषज्ञता की आवश्यकता है?",
+    "urgencyTitle": "यह अपॉइंटमेंट कितना जरूरी है?",
+    "scheduleTitle": "आप कब अपॉइंटमेंट शेड्यूल करना चाहेंगे?",
+    "preferredDate": "पसंदीदा तारीख",
+    "preferredTime": "पसंदीदा समय",
+    "aiRecommendations": "AI द्वारा सुझाए गए डॉक्टर",
+    "showingSpecialists": "{specialty} विशेषज्ञ दिखाए जा रहे हैं:",
+    "availableDoctors": "यहाँ हमारे उपलब्ध डॉक्टर्स हैं:",
+    "aiMatched": "AI मिलान",
+    "noDoctors": "कोई डॉक्टर नहीं मिले। कृपया बाद में पुनः प्रयास करें।",
+    "bookButton": "अपॉइंटमेंट बुक करें",
+    "alerts": {
+      "loginRequired": "अपॉइंटमेंट बुक करने के लिए आपको लॉग इन करना होगा।",
+      "imageTooLarge": "तस्वीर का आकार बहुत बड़ा है। कृपया छोटी तस्वीर अपलोड करें या बिना तस्वीर के आगे बढ़ें।",
+      "bookingFailed": "अपॉइंटमेंट बुक करने में विफल। कृपया छोटी तस्वीर के साथ या बिना तस्वीर के पुनः प्रयास करें।"
+    },
+    "imageErrors": {
+      "type": "कृपया एक इमेज फाइल अपलोड करें (JPEG, PNG)",
+      "size": "तस्वीर का आकार 500KB से कम होना चाहिए",
+      "general": "फाइल पढ़ने में त्रुटि"
+    },
+    "specialties": {
+      "general": {
+        "name": "सामान्य चिकित्सा",
+        "description": "सामान्य स्वास्थ्य जांच और सामान्य समस्याएं"
+      },
+      "cardiology": {
+        "name": "हृदय रोग विज्ञान",
+        "description": "हृदय और हृदय संबंधी समस्याएं"
+      },
+      "dermatology": {
+        "name": "त्वचा विज्ञान",
+        "description": "त्वचा, बाल और नाखून संबंधी समस्याएं"
+      },
+      "orthopedics": {
+        "name": "अस्थि रोग विज्ञान",
+        "description": "हड्डी, जोड़ और मांसपेशियों की समस्याएं"
+      },
+      "neurology": {
+        "name": "तंत्रिका विज्ञान",
+        "description": "मस्तिष्क और तंत्रिका तंत्र संबंधी विकार"
+      },
+      "pediatrics": {
+        "name": "बाल रोग विज्ञान",
+        "description": "बच्चों और किशोरों के लिए स्वास्थ्य सेवाएं"
+      }
+    },
+    "urgency": {
+      "routine": {
+        "name": "सामान्य जांच",
+        "description": "नियमित जांच या गैर-जरूरी समस्या"
+      },
+      "soon": {
+        "name": "जल्द",
+        "description": "चिंताजनक लक्षण, एक सप्ताह के भीतर"
+      },
+      "urgent": {
+        "name": "जरूरी",
+        "description": "गंभीर लक्षण, 24-48 घंटे के भीतर"
+      },
+      "emergency": {
+        "name": "आपातकालीन",
+        "description": "गंभीर लक्षण, तत्काल ध्यान देने की आवश्यकता"
+      }
+    }
+  },
+  "common": {
+    "back": "पीछे",
+    "next": "आगे"
+  },
+  "layout": {
+  "Dashboard": "डैशबोर्ड",
+  "Profile": "प्रोफ़ाइल",
+  "Emergency": "आपातकाल",
+  "Prescriptions": "प्रिस्क्रिप्शन",
+  "BookAppointment": "अपॉइंटमेंट बुक करें",
+  "Ask": "पूछें",
+  "Placeholder": "हमारे AI सहायक से पूछें...",
+  "SwitchLang": "भाषा बदलें"
+},
+"dashboard": {
+    "title": "डैशबोर्ड",
+    "loading": "लोड हो रहा है...",
+    "notAvailable": "उपलब्ध नहीं",
+    "noActivePrescriptions": "कोई सक्रिय प्रिस्क्रिप्शन नहीं",
+    "generalConsultation": "सामान्य परामर्श",
+    "stats": {
+      "nextAppointment": "अगली अपॉइंटमेंट",
+      "noUpcomingAppointment": "कोई आगामी अपॉइंटमेंट नहीं",
+      "activePrescriptions": "सक्रिय प्रिस्क्रिप्शन",
+      "healthScore": "स्वास्थ्य स्कोर",
+      "lastCheckup": "अंतिम जांच"
+    },
+    "quickActionsTitle": "त्वरित कार्रवाई",
+    "quickActions": {
+      "bookAppointment": "अपॉइंटमेंट बुक करें",
+      "emergencyServices": "आपातकालीन सेवाएं",
+      "viewPrescriptions": "प्रिस्क्रिप्शन देखें",
+      "updateProfile": "प्रोफाइल अपडेट करें"
+    },
+    "todaysMedications": "आज की दवाएं",
+    "upcomingAppointments": "आगामी अपॉइंटमेंट",
+    "bookNewAppointment": "नई अपॉइंटमेंट बुक करें"
+  },
+  "prescriptions": {
+    "title": "प्रिस्क्रिप्शन",
+    "todaysSchedule": "आज का दवा कार्यक्रम",
+    "markButton": "चिह्नित करें",
+    "currentTab": "वर्तमान प्रिस्क्रिप्शन",
+    "pastTab": "पुराने प्रिस्क्रिप्शन",
+    "prescribedBy": "द्वारा निर्धारित",
+    "downloadTitle": "डाउनलोड करें",
+    "printTitle": "प्रिंट करें",
+    "downloadFilename": "दवाई_याददाश्त.json",
+    "prescribedDate": "निर्धारित तिथि",
+    "expires": "समाप्ति तिथि",
+    "refillsLeft": "बचे हुए रिफिल",
+    "completedDate": "पूर्ण तिथि",
+    "instructionsTitle": "निर्देश",
+    "refillsAvailable": "रिफिल उपलब्ध हैं",
+    "contactForRefill": "रिफिल के लिए डॉक्टर से संपर्क करें",
+    "requestRefill": "रिफिल अनुरोध करें",
+    "contactDoctor": "डॉक्टर से संपर्क करें",
+    "managementTips": "प्रिस्क्रिप्शन प्रबंधन सुझाव",
+    "setReminders": "अनुस्मारक सेट करें",
+    "setRemindersDesc": "कभी भी दवा लेना न भूलें",
+    "trackRefills": "रिफिल ट्रैक करें",
+    "trackRefillsDesc": "दवा खत्म होने से पहले रिफिल का अनुरोध करें",
+    "followInstructions": "निर्देशों का पालन करें",
+    "followInstructionsDesc": "दवाएं बिल्कुल निर्धारित अनुसार लें",
+    "consultDoctor": "डॉक्टर से परामर्श करें",
+    "consultDoctorDesc": "किसी भी चिंता या दुष्प्रभाव के लिए अपने डॉक्टर से संपर्क करें"
+  },
+   "emergency": {
+    "title": "आपातकालीन सेवाएं",
+    "protocol": {
+      "title": "आपातकालीन प्रोटोकॉल:",
+      "message": "यदि यह जीवन के लिए खतरा है, तो तुरंत 911 पर कॉल करें।"
+    },
+    "quickActions": {
+      "call911": "911 पर कॉल करें",
+      "poisonControl": "पॉइज़न कंट्रोल को कॉल करें",
+      "shareLocation": "स्थान साझा करें",
+      "medicalID": "मेडिकल आईडी"
+    },
+    "emergencyTypes": {
+      "title": "यह किस प्रकार की आपात स्थिति है?",
+      "subtitle": "यह हमें सबसे उपयुक्त देखभाल सुझाने में मदद करता है।",
+      "cardiac": {
+        "name": "हृदय आपातकाल",
+        "description": "सीने में दर्द, हार्ट अटैक के लक्षण"
+      },
+      "trauma": {
+        "name": "चोट/दुर्घटना",
+        "description": "चोटें, दुर्घटनाएं, रक्तस्राव"
+      },
+      "breathing": {
+        "name": "सांस लेने में कठिनाई",
+        "description": "सांस की तकलीफ, अस्थमा का दौरा"
+      },
+      "severe": {
+        "name": "तीव्र दर्द",
+        "description": "तीव्र दर्द, चिकित्सा आपातकाल"
+      }
+    },
+    "hospitals": {
+      "waitTime": "~10 मिनट प्रतीक्षा",
+      "rating": "उपलब्ध नहीं",
+      "directions": "दिशा-निर्देश",
+      "noHospitals": "आस-पास कोई अस्पताल नहीं मिला।"
+    },
+    "medicalInfo": {
+      "title": "आपकी चिकित्सा जानकारी",
+      "bloodType": "रक्त प्रकार:",
+      "bloodTypeNA": "उपलब्ध नहीं",
+      "allergies": "एलर्जी:",
+      "allergiesNone": "कोई सूचीबद्ध नहीं",
+      "medications": "वर्तमान दवाएं:",
+      "medicationsNone": "कोई नहीं",
+      "disclaimer": "जब आप मदद के लिए कॉल करते हैं तो यह जानकारी स्वचालित रूप से आपातकालीन प्रतिक्रियाकर्ताओं के साथ साझा की जाती है।"
+    },
+    "errors": {
+      "location": "आपका स्थान पता लगाने में असमर्थ।",
+      "maps": "Google Maps लोड नहीं हुआ।",
+      "noHospitals": "कोई अस्पताल नहीं मिला।"
+    }
+  },
+  "patientProfile": {
+    "title": "रोगी प्रोफ़ाइल",
+    "editProfile": "प्रोफ़ाइल संपादित करें",
+    "saveChanges": "परिवर्तन सहेजें",
+    "basicInfo": {
+      "fullName": "पूरा नाम",
+      "dateOfBirth": "जन्म तिथि",
+      "uploadPhoto": "प्रोफ़ाइल फोटो अपलोड करें"
+    },
+    "contactInfo": {
+      "title": "संपर्क जानकारी",
+      "email": "ईमेल",
+      "phone": "फोन",
+      "address": "पता"
+    },
+    "medicalInfo": {
+      "title": "चिकित्सा जानकारी",
+      "bloodType": "रक्त प्रकार",
+      "height": "ऊंचाई",
+      "weight": "वजन",
+      "allergies": "एलर्जी",
+      "chronicConditions": "पुरानी बीमारियाँ",
+      "currentMedications": "वर्तमान दवाएं",
+      "emergencyContact": "आपातकालीन संपर्क",
+      "selectBloodType": "चुनें",
+      "bloodTypes": {
+        "A+": "ए+",
+        "A-": "ए-",
+        "B+": "बी+",
+        "B-": "बी-",
+        "AB+": "एबी+",
+        "AB-": "एबी-",
+        "O+": "ओ+",
+        "O-": "ओ-"
+      }
+    },
+    "vitals": {
+      "title": "वर्तमान महत्वपूर्ण संकेत",
+      "noData": "अभी कोई महत्वपूर्ण संकेत उपलब्ध नहीं है।"
+    },
+    "notAvailable": "उपलब्ध नहीं",
+    "alerts": {
+      "saveSuccess": "प्रोफ़ाइल सफलतापूर्वक सहेजी गई!",
+      "saveError": "प्रोफ़ाइल सहेजने में विफल।",
+      "loginRequired": "उपयोगकर्ता लॉग इन नहीं है"
+    }
+  }
+}

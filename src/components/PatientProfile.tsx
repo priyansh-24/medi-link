@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from './Layout';
 import { Phone, Mail, MapPin, Activity, Edit2, Save } from 'lucide-react';
 import { auth, db } from './lib/Firebase'; 
 import { ref, set, get } from 'firebase/database';
 
-
 const PatientProfile: React.FC = () => {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: '',
@@ -24,26 +25,19 @@ const PatientProfile: React.FC = () => {
   });
 
   const uid = auth.currentUser?.uid;
-    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !uid) return;
 
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uid) return;
 
-        // Save base64 to profile state
-        setProfile(prev => ({ ...prev, photoURL: base64String }));
-
-        // Save to Realtime Database
-        await set(ref(db, `users/${uid}/photoURL`), base64String);
-        console.log("Base64 photo saved to database");
-      };
-
-      reader.readAsDataURL(file);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      setProfile(prev => ({ ...prev, photoURL: base64String }));
+      await set(ref(db, `users/${uid}/photoURL`), base64String);
     };
-
-
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (!uid) return;
@@ -56,14 +50,14 @@ const PatientProfile: React.FC = () => {
   }, [uid]);
 
   const handleSave = async () => {
-    if (!uid) return alert("User not logged in");
+    if (!uid) return alert(t('patientProfile.alerts.loginRequired'));
     try {
       await set(ref(db, `users/${uid}`), profile);
       setIsEditing(false);
-      alert("Profile saved successfully!");
+      alert(t('patientProfile.alerts.saveSuccess'));
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile.");
+      alert(t('patientProfile.alerts.saveError'));
     }
   };
 
@@ -72,7 +66,7 @@ const PatientProfile: React.FC = () => {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-semibold text-gray-900">Patient Profile</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">{t('patientProfile.title')}</h1>
             <button
               onClick={isEditing ? handleSave : () => setIsEditing(true)}
               className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
@@ -82,7 +76,7 @@ const PatientProfile: React.FC = () => {
               }`}
             >
               {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit2 className="h-4 w-4 mr-2" />}
-              {isEditing ? 'Save Changes' : 'Edit Profile'}
+              {isEditing ? t('patientProfile.saveChanges') : t('patientProfile.editProfile')}
             </button>
           </div>
         </div>
@@ -109,7 +103,7 @@ const PatientProfile: React.FC = () => {
                       accept="image/*"
                       onChange={handlePhotoUpload}
                       className="absolute bottom-0 left-0 w-full h-full opacity-0 cursor-pointer"
-                      title="Upload Profile Photo"
+                      title={t('patientProfile.basicInfo.uploadPhoto')}
                     />
                   )}
                 </div>
@@ -117,7 +111,7 @@ const PatientProfile: React.FC = () => {
                 <div className="ml-6 flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Full Name</label>
+                      <label className="text-sm text-gray-500">{t('patientProfile.basicInfo.fullName')}</label>
                       {isEditing ? (
                         <input
                           type="text"
@@ -126,11 +120,11 @@ const PatientProfile: React.FC = () => {
                           className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         />
                       ) : (
-                        <p className="text-lg font-medium text-gray-900">{profile.name || 'N/A'}</p>
+                        <p className="text-lg font-medium text-gray-900">{profile.name || t('patientProfile.notAvailable')}</p>
                       )}
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Date of Birth</label>
+                      <label className="text-sm text-gray-500">{t('patientProfile.basicInfo.dateOfBirth')}</label>
                       {isEditing ? (
                         <input
                           type="date"
@@ -140,7 +134,7 @@ const PatientProfile: React.FC = () => {
                         />
                       ) : (
                         <p className="text-lg font-medium text-gray-900">
-                          {profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
+                          {profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : t('patientProfile.notAvailable')}
                         </p>
                       )}
                     </div>
@@ -153,7 +147,7 @@ const PatientProfile: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Contact Information</h3>
+                <h3 className="text-lg font-medium text-gray-900">{t('patientProfile.contactInfo.title')}</h3>
               </div>
               <div className="p-6 space-y-4">
                 <div className="flex items-center">
@@ -166,7 +160,7 @@ const PatientProfile: React.FC = () => {
                       className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
-                    <span className="text-gray-900">{profile.email || 'N/A'}</span>
+                    <span className="text-gray-900">{profile.email || t('patientProfile.notAvailable')}</span>
                   )}
                 </div>
                 <div className="flex items-center">
@@ -179,7 +173,7 @@ const PatientProfile: React.FC = () => {
                       className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
-                    <span className="text-gray-900">{profile.phone || 'N/A'}</span>
+                    <span className="text-gray-900">{profile.phone || t('patientProfile.notAvailable')}</span>
                   )}
                 </div>
                 <div className="flex items-start">
@@ -192,7 +186,7 @@ const PatientProfile: React.FC = () => {
                       rows={3}
                     />
                   ) : (
-                    <span className="text-gray-900">{profile.address || 'N/A'}</span>
+                    <span className="text-gray-900">{profile.address || t('patientProfile.notAvailable')}</span>
                   )}
                 </div>
               </div>
@@ -200,34 +194,31 @@ const PatientProfile: React.FC = () => {
 
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Medical Information</h3>
+                <h3 className="text-lg font-medium text-gray-900">{t('patientProfile.medicalInfo.title')}</h3>
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="text-sm text-gray-500">Blood Type</label>
+                  <label className="text-sm text-gray-500">{t('patientProfile.medicalInfo.bloodType')}</label>
                   {isEditing ? (
                     <select
                       value={profile.bloodType}
                       onChange={(e) => setProfile({...profile, bloodType: e.target.value})}
                       className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="">Select</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
+                      <option value="">{t('patientProfile.medicalInfo.selectBloodType')}</option>
+                      {Object.entries(t('patientProfile.medicalInfo.bloodTypes', { returnObjects: true })).map(([key, value]) => (
+                        <option key={key} value={key}>{value}</option>
+                      ))}
                     </select>
                   ) : (
-                    <p className="text-gray-900 font-medium">{profile.bloodType || 'N/A'}</p>
+                    <p className="text-gray-900 font-medium">
+                      {profile.bloodType || t('patientProfile.notAvailable')}
+                    </p>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-gray-500">Height</label>
+                    <label className="text-sm text-gray-500">{t('patientProfile.medicalInfo.height')}</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -236,11 +227,11 @@ const PatientProfile: React.FC = () => {
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       />
                     ) : (
-                      <p className="text-gray-900 font-medium">{profile.height || 'N/A'}</p>
+                      <p className="text-gray-900 font-medium">{profile.height || t('patientProfile.notAvailable')}</p>
                     )}
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Weight</label>
+                    <label className="text-sm text-gray-500">{t('patientProfile.medicalInfo.weight')}</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -249,12 +240,12 @@ const PatientProfile: React.FC = () => {
                         className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       />
                     ) : (
-                      <p className="text-gray-900 font-medium">{profile.weight || 'N/A'}</p>
+                      <p className="text-gray-900 font-medium">{profile.weight || t('patientProfile.notAvailable')}</p>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500">Allergies</label>
+                  <label className="text-sm text-gray-500">{t('patientProfile.medicalInfo.allergies')}</label>
                   {isEditing ? (
                     <textarea
                       value={profile.allergies}
@@ -263,7 +254,7 @@ const PatientProfile: React.FC = () => {
                       rows={2}
                     />
                   ) : (
-                    <p className="text-gray-900">{profile.allergies || 'N/A'}</p>
+                    <p className="text-gray-900">{profile.allergies || t('patientProfile.notAvailable')}</p>
                   )}
                 </div>
               </div>
@@ -273,11 +264,11 @@ const PatientProfile: React.FC = () => {
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900 flex items-center">
                   <Activity className="h-5 w-5 mr-2 text-blue-500" />
-                  Current Vitals
+                  {t('patientProfile.vitals.title')}
                 </h3>
               </div>
               <div className="p-6 text-sm text-gray-500">
-                No vitals available for now.
+                {t('patientProfile.vitals.noData')}
               </div>
             </div>
           </div>

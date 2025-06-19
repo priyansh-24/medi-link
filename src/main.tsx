@@ -3,8 +3,15 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+// ✅ Add Redux and i18n imports
+import { Provider } from 'react-redux';
+import { store } from './store/store';
+import './i18n'; // very important
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <Provider store={store}>
+      <App />
+    </Provider>
   </StrictMode>
 );

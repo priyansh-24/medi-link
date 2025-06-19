@@ -1,0 +1,256 @@
+{
+  "bookAppointment": {
+    "title": "Book an Appointment",
+    "stepIndicator": "Step {step} of {total}",
+    "steps": {
+      "symptoms": "Tell us about your concern",
+      "urgency": "Choose urgency level",
+      "time": "Select preferred time",
+      "doctor": "Choose your doctor"
+    },
+    "symptomsTitle": "What brings you in today?",
+    "symptomsPlaceholder": "Describe your symptoms or reason for visit...",
+    "uploadTitle": "Upload symptom photo (optional)",
+    "uploadDescription": "Max size: 500KB (JPEG, PNG)",
+    "uploadClick": "Click to upload",
+    "uploadDrag": "or drag and drop",
+    "uploadFormats": "PNG, JPG (MAX. 500KB)",
+    "uploadProcessing": "Processing image...",
+    "uploadedImage": "Uploaded Image:",
+    "imageAlt": "Symptom preview",
+    "removeImage": "Remove image",
+    "specialtyTitle": "Which specialty do you need?",
+    "urgencyTitle": "How urgent is this appointment?",
+    "scheduleTitle": "When would you like to schedule?",
+    "preferredDate": "Preferred Date",
+    "preferredTime": "Preferred Time",
+    "aiRecommendations": "AI Recommended Doctors",
+    "showingSpecialists": "Showing {specialty} specialists first:",
+    "availableDoctors": "Here are our available doctors:",
+    "aiMatched": "AI Matched",
+    "noDoctors": "No doctors found. Please try again later.",
+    "bookButton": "Book Appointment",
+    "alerts": {
+      "loginRequired": "You must be logged in to book an appointment.",
+      "imageTooLarge": "Image is too large to store. Please upload a smaller image or proceed without it.",
+      "bookingFailed": "Failed to book appointment. Please try again with a smaller image or no image."
+    },
+    "imageErrors": {
+      "type": "Please upload an image file (JPEG, PNG)",
+      "size": "Image size should be less than 500KB",
+      "general": "Error reading file"
+    },
+    "specialties": {
+      "general": {
+        "name": "General Medicine",
+        "description": "General health checkups and common conditions"
+      },
+      "cardiology": {
+        "name": "Cardiology",
+        "description": "Heart and cardiovascular conditions"
+      },
+      "dermatology": {
+        "name": "Dermatology",
+        "description": "Skin, hair, and nail conditions"
+      },
+      "orthopedics": {
+        "name": "Orthopedics",
+        "description": "Bone, joint, and muscle issues"
+      },
+      "neurology": {
+        "name": "Neurology",
+        "description": "Brain and nervous system disorders"
+      },
+      "pediatrics": {
+        "name": "Pediatrics",
+        "description": "Healthcare for children and adolescents"
+      }
+    },
+    "urgency": {
+      "routine": {
+        "name": "Routine Care",
+        "description": "Regular checkup or non-urgent concern"
+      },
+      "soon": {
+        "name": "Soon",
+        "description": "Concerning symptoms, within a week"
+      },
+      "urgent": {
+        "name": "Urgent",
+        "description": "Significant symptoms, within 24-48 hours"
+      },
+      "emergency": {
+        "name": "Emergency",
+        "description": "Severe symptoms, immediate attention"
+      }
+    }
+  },
+  "common": {
+    "back": "Back",
+    "next": "Next"
+  },
+  "layout": {
+    "Dashboard": "Dashboard",
+    "Profile": "Profile",
+    "Emergency": "Emergency",
+    "Prescriptions": "Prescriptions",
+    "BookAppointment": "Book Appointment",
+    "Ask": "Ask",
+    "Placeholder": "Ask our AI assistant...",
+    "SwitchLang": "Switch Language"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "loading": "Loading...",
+    "notAvailable": "Not Available",
+    "noActivePrescriptions": "No active prescriptions",
+    "generalConsultation": "General Consultation",
+    "stats": {
+      "nextAppointment": "Next Appointment",
+      "noUpcomingAppointment": "No upcoming appointment",
+      "activePrescriptions": "Active Prescriptions",
+      "healthScore": "Health Score",
+      "lastCheckup": "Last Checkup"
+    },
+    "quickActionsTitle": "Quick Actions",
+    "quickActions": {
+      "bookAppointment": "Book Appointment",
+      "emergencyServices": "Emergency Services",
+      "viewPrescriptions": "View Prescriptions",
+      "updateProfile": "Update Profile"
+    },
+    "todaysMedications": "Today's Medications",
+    "upcomingAppointments": "Upcoming Appointments",
+    "bookNewAppointment": "Book New Appointment"
+  },
+  "prescriptions": {
+    "title": "Prescriptions",
+    "todaysSchedule": "Today's Medication Schedule",
+    "markButton": "Mark",
+    "currentTab": "Current Prescriptions",
+    "pastTab": "Past Prescriptions",
+    "prescribedBy": "Prescribed By",
+    "downloadTitle": "Download",
+    "printTitle": "Print",
+    "downloadFilename": "medication_reminder.json",
+    "prescribedDate": "Prescribed Date",
+    "expires": "Expires",
+    "refillsLeft": "Refills Left",
+    "completedDate": "Completed Date",
+    "instructionsTitle": "Instructions",
+    "refillsAvailable": "Refills Available",
+    "contactForRefill": "Contact doctor for refill",
+    "requestRefill": "Request Refill",
+    "contactDoctor": "Contact Doctor",
+    "managementTips": "Prescription Management Tips",
+    "setReminders": "Set Reminders",
+    "setRemindersDesc": "Never miss a dose again",
+    "trackRefills": "Track Refills",
+    "trackRefillsDesc": "Request refills before running out",
+    "followInstructions": "Follow Instructions",
+    "followInstructionsDesc": "Take medications exactly as prescribed",
+    "consultDoctor": "Consult Doctor",
+    "consultDoctorDesc": "Reach out to your doctor for any concerns or side effects"
+  },
+  "emergency": {
+    "title": "Emergency Services",
+    "protocol": {
+      "title": "Emergency Protocol:",
+      "message": "If this is life-threatening, call 911 immediately."
+    },
+    "quickActions": {
+      "call911": "Call 911",
+      "poisonControl": "Call Poison Control",
+      "shareLocation": "Share Location",
+      "medicalID": "Medical ID"
+    },
+    "emergencyTypes": {
+      "title": "What type of emergency is this?",
+      "subtitle": "This helps us suggest the most appropriate care.",
+      "cardiac": {
+        "name": "Cardiac Emergency",
+        "description": "Chest pain, heart attack symptoms"
+      },
+      "trauma": {
+        "name": "Trauma/Accident",
+        "description": "Injuries, accidents, bleeding"
+      },
+      "breathing": {
+        "name": "Breathing Difficulty",
+        "description": "Shortness of breath, asthma attack"
+      },
+      "severe": {
+        "name": "Severe Pain",
+        "description": "Intense pain, medical emergency"
+      }
+    },
+    "hospitals": {
+      "waitTime": "~10 min wait",
+      "rating": "N/A",
+      "directions": "Directions",
+      "noHospitals": "No hospitals found nearby."
+    },
+    "medicalInfo": {
+      "title": "Your Medical Information",
+      "bloodType": "Blood Type:",
+      "bloodTypeNA": "Not available",
+      "allergies": "Allergies:",
+      "allergiesNone": "None listed",
+      "medications": "Current Medications:",
+      "medicationsNone": "None",
+      "disclaimer": "This information is automatically shared with emergency responders when you call for help."
+    },
+    "errors": {
+      "location": "Unable to detect your location.",
+      "maps": "Google Maps not loaded.",
+      "noHospitals": "No hospitals found."
+    }
+  },
+  "patientProfile": {
+    "title": "Patient Profile",
+    "editProfile": "Edit Profile",
+    "saveChanges": "Save Changes",
+    "basicInfo": {
+      "fullName": "Full Name",
+      "dateOfBirth": "Date of Birth",
+      "uploadPhoto": "Upload Profile Photo"
+    },
+    "contactInfo": {
+      "title": "Contact Information",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address"
+    },
+    "medicalInfo": {
+      "title": "Medical Information",
+      "bloodType": "Blood Type",
+      "height": "Height",
+      "weight": "Weight",
+      "allergies": "Allergies",
+      "chronicConditions": "Chronic Conditions",
+      "currentMedications": "Current Medications",
+      "emergencyContact": "Emergency Contact",
+      "selectBloodType": "Select",
+      "bloodTypes": {
+        "A+": "A+",
+        "A-": "A-",
+        "B+": "B+",
+        "B-": "B-",
+        "AB+": "AB+",
+        "AB-": "AB-",
+        "O+": "O+",
+        "O-": "O-"
+      }
+    },
+    "vitals": {
+      "title": "Current Vitals",
+      "noData": "No vitals available for now."
+    },
+    "notAvailable": "N/A",
+    "alerts": {
+      "saveSuccess": "Profile saved successfully!",
+      "saveError": "Failed to save profile.",
+      "loginRequired": "User not logged in"
+    }
+  }
+}

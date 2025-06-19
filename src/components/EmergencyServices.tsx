@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from './Layout';
 import {
   AlertTriangle, Phone, MapPin, Navigation, Clock, Heart, Ambulance
@@ -14,6 +15,7 @@ type Hospital = {
 };
 
 const EmergencyServices: React.FC = () => {
+  const { t } = useTranslation();
   const [selectedEmergency, setSelectedEmergency] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbyHospitals, setNearbyHospitals] = useState<Hospital[]>([]);
@@ -26,29 +28,29 @@ const EmergencyServices: React.FC = () => {
   } | null>(null);
 
   const emergencyTypes = [
-    { id: 'cardiac', name: 'Cardiac Emergency', icon: Heart, color: 'bg-red-500', description: 'Chest pain, heart attack symptoms' },
-    { id: 'trauma', name: 'Trauma/Accident', icon: Ambulance, color: 'bg-orange-500', description: 'Injuries, accidents, bleeding' },
-    { id: 'breathing', name: 'Breathing Difficulty', icon: AlertTriangle, color: 'bg-yellow-500', description: 'Shortness of breath, asthma attack' },
-    { id: 'severe', name: 'Severe Pain', icon: AlertTriangle, color: 'bg-purple-500', description: 'Intense pain, medical emergency' },
+    { id: 'cardiac', name: t('emergency.emergencyTypes.cardiac.name'), icon: Heart, color: 'bg-red-500', description: t('emergency.emergencyTypes.cardiac.description') },
+    { id: 'trauma', name: t('emergency.emergencyTypes.trauma.name'), icon: Ambulance, color: 'bg-orange-500', description: t('emergency.emergencyTypes.trauma.description') },
+    { id: 'breathing', name: t('emergency.emergencyTypes.breathing.name'), icon: AlertTriangle, color: 'bg-yellow-500', description: t('emergency.emergencyTypes.breathing.description') },
+    { id: 'severe', name: t('emergency.emergencyTypes.severe.name'), icon: AlertTriangle, color: 'bg-purple-500', description: t('emergency.emergencyTypes.severe.description') },
   ];
 
   const shareLocation = () => {
     if (!location) {
-      alert('Location not available yet.');
+      alert(t('emergency.errors.location'));
       return;
     }
 
     const mapsUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
-    const message = `🚨 Emergency! Please help. My location: ${mapsUrl}`;
+    const message = `🚨 ${t('emergency.title')}! ${t('emergency.protocol.message')} ${t('emergency.protocol.title')}: ${mapsUrl}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
   const quickActions = [
-    { name: 'Call 911', action: () => window.open('tel:911'), color: 'bg-red-600', icon: Phone },
-    { name: 'Call Poison Control', action: () => window.open('tel:18002221222'), color: 'bg-orange-600', icon: Phone },
-    { name: 'Share Location', action: shareLocation, color: 'bg-blue-600', icon: MapPin },
-    { name: 'Medical ID', action: () => alert('Medical ID feature coming soon.'), color: 'bg-green-600', icon: Heart },
+    { name: t('emergency.quickActions.call911'), action: () => window.open('tel:911'), color: 'bg-red-600', icon: Phone },
+    { name: t('emergency.quickActions.poisonControl'), action: () => window.open('tel:18002221222'), color: 'bg-orange-600', icon: Phone },
+    { name: t('emergency.quickActions.shareLocation'), action: shareLocation, color: 'bg-blue-600', icon: MapPin },
+    { name: t('emergency.quickActions.medicalID'), action: () => alert(t('emergency.quickActions.medicalID')), color: 'bg-green-600', icon: Heart },
   ];
 
   useEffect(() => {
@@ -97,16 +99,16 @@ const EmergencyServices: React.FC = () => {
         },
         (error) => {
           console.error("Location error:", error);
-          setHospitalError("Unable to detect your location.");
+          setHospitalError(t('emergency.errors.location'));
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
-  }, []);
+  }, [t]);
 
   const fetchNearbyHospitals = (lat: number, lng: number) => {
     if (!window.google || !window.google.maps) {
-      setHospitalError('Google Maps not loaded.');
+      setHospitalError(t('emergency.errors.maps'));
       return;
     }
 
@@ -125,15 +127,14 @@ const EmergencyServices: React.FC = () => {
       if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
         setNearbyHospitals(
           results.map((place) => ({
-          name: place.name ?? 'Unknown',
-          vicinity: place.vicinity ?? 'Unknown location',
-          rating: place.rating ?? 0,
-          user_ratings_total: place.user_ratings_total ?? 0,
-        }))
-
+            name: place.name ?? 'Unknown',
+            vicinity: place.vicinity ?? t('emergency.hospitals.noHospitals'),
+            rating: place.rating ?? 0,
+            user_ratings_total: place.user_ratings_total ?? 0,
+          }))
         );
       } else {
-        setHospitalError('No hospitals found.');
+        setHospitalError(t('emergency.errors.noHospitals'));
       }
       setLoadingHospitals(false);
     });
@@ -144,14 +145,14 @@ const EmergencyServices: React.FC = () => {
       <div className="py-6 px-4 max-w-7xl mx-auto">
         <div className="flex items-center mb-6">
           <AlertTriangle className="h-8 w-8 text-red-500 mr-3" />
-          <h1 className="text-2xl font-semibold text-gray-900">Emergency Services</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('emergency.title')}</h1>
         </div>
 
         <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
           <div className="flex">
             <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
             <p className="text-sm text-red-700">
-              <strong>Emergency Protocol:</strong> If this is life-threatening, call 911 immediately.
+              <strong>{t('emergency.protocol.title')}</strong> {t('emergency.protocol.message')}
             </p>
           </div>
         </div>
@@ -171,8 +172,8 @@ const EmergencyServices: React.FC = () => {
 
         <div className="bg-white shadow rounded-lg mb-6">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">What type of emergency is this?</h3>
-            <p className="text-sm text-gray-500 mt-1">This helps us suggest the most appropriate care.</p>
+            <h3 className="text-lg font-medium text-gray-900">{t('emergency.emergencyTypes.title')}</h3>
+            <p className="text-sm text-gray-500 mt-1">{t('emergency.emergencyTypes.subtitle')}</p>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             {emergencyTypes.map(({ id, name, description, icon: Icon, color }) => (
@@ -206,7 +207,7 @@ const EmergencyServices: React.FC = () => {
                     <h4 className="text-lg font-medium text-gray-900">{hospital.name}</h4>
                     <div className="flex items-center text-sm text-gray-500">
                       <Clock className="h-4 w-4 mr-1" />
-                      ~10 min wait
+                      {t('emergency.hospitals.waitTime')}
                     </div>
                   </div>
                   <div className="flex items-center text-gray-600 mb-2">
@@ -220,14 +221,14 @@ const EmergencyServices: React.FC = () => {
                           ★
                         </span>
                       ))}
-                      <span className="ml-2 text-sm text-gray-600">{hospital.rating?.toFixed(1) || 'N/A'}</span>
+                      <span className="ml-2 text-sm text-gray-600">{hospital.rating?.toFixed(1) || t('emergency.hospitals.rating')}</span>
                     </div>
                     <button
                       onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(hospital.vicinity)}`)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
                     >
                       <Navigation className="h-4 w-4 mr-1" />
-                      Directions
+                      {t('emergency.hospitals.directions')}
                     </button>
                   </div>
                 </div>
@@ -236,33 +237,33 @@ const EmergencyServices: React.FC = () => {
           ))}
 
           {nearbyHospitals.length === 0 && !loadingHospitals && !hospitalError && (
-            <p className="p-6 text-sm text-gray-500">No hospitals found nearby.</p>
+            <p className="p-6 text-sm text-gray-500">{t('emergency.hospitals.noHospitals')}</p>
           )}
         </div>
 
         {medicalInfo && (
           <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 className="text-lg font-medium text-yellow-800 mb-4">Your Medical Information</h3>
+            <h3 className="text-lg font-medium text-yellow-800 mb-4">{t('emergency.medicalInfo.title')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="font-medium text-yellow-800">Blood Type:</p>
-                <p className="text-yellow-700">{medicalInfo.bloodType || 'Not available'}</p>
+                <p className="font-medium text-yellow-800">{t('emergency.medicalInfo.bloodType')}</p>
+                <p className="text-yellow-700">{medicalInfo.bloodType || t('emergency.medicalInfo.bloodTypeNA')}</p>
               </div>
               <div>
-                <p className="font-medium text-yellow-800">Allergies:</p>
-                <p className="text-yellow-700">{medicalInfo.allergies || 'None listed'}</p>
+                <p className="font-medium text-yellow-800">{t('emergency.medicalInfo.allergies')}</p>
+                <p className="text-yellow-700">{medicalInfo.allergies || t('emergency.medicalInfo.allergiesNone')}</p>
               </div>
               <div>
-                <p className="font-medium text-yellow-800">Current Medications:</p>
+                <p className="font-medium text-yellow-800">{t('emergency.medicalInfo.medications')}</p>
                 <p className="text-yellow-700">
                   {medicalInfo.currentMedications?.length
                     ? medicalInfo.currentMedications.join(', ')
-                    : 'None'}
+                    : t('emergency.medicalInfo.medicationsNone')}
                 </p>
               </div>
             </div>
             <p className="text-xs text-yellow-600 mt-4">
-              This information is automatically shared with emergency responders when you call for help.
+              {t('emergency.medicalInfo.disclaimer')}
             </p>
           </div>
         )}

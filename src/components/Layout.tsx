@@ -14,6 +14,10 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import { useDispatch} from 'react-redux';
+
+import { toggleLanguage } from '../store/languageSlice';
+import { useTranslation } from 'react-i18next';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,10 +28,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const dispatch = useDispatch();
+  const { t } = useTranslation();
+  
 
   useEffect(() => {
     if (!user) {
@@ -41,11 +48,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Profile', href: '/profile', icon: User },
-    { name: 'Emergency', href: '/emergency', icon: AlertTriangle },
-    { name: 'Prescriptions', href: '/prescriptions', icon: FileText },
-    { name: 'Book Appointment', href: '/book-appointment', icon: Calendar },
+    { name: t('layout.Dashboard'), href: '/dashboard', icon: Home },
+    { name: t('layout.Profile'), href: '/profile', icon: User },
+    { name: t('layout.Emergency'), href: '/emergency', icon: AlertTriangle },
+    { name: t('layout.Prescriptions'), href: '/prescriptions', icon: FileText },
+    { name: t('layout.BookAppointment'), href: '/book-appointment', icon: Calendar },
   ];
 
   const handleAskAssistant = async (e: React.FormEvent) => {
@@ -68,7 +75,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `sk-e10385e4bfd443c1b6bc9989bc045ab1`,
+            Authorization: `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
           },
         }
       );
@@ -76,8 +83,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       const answer = res.data.choices[0].message.content;
       setResponse(answer);
     } catch (error) {
-      console.error(error);
-      setResponse('⚠️ Unable to get a response. Please try again later.');
+      console.error('AI error:', error);
+      setResponse(t('app.ai_error') || '⚠️ Unable to get a response. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -157,7 +164,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Menu className="h-6 w-6" />
             </button>
           )}
-          <div className="flex-1 px-4 flex justify-between">
+          <div className="flex-1 px-4 flex justify-between items-center">
             <form onSubmit={handleAskAssistant} className="flex-1 flex items-center">
               <div className="relative w-full text-gray-400 focus-within:text-gray-600">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-2">
@@ -165,7 +172,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
                 <input
                   className="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Ask our AI assistant..."
+                  placeholder={t('layout.Placeholder') || "Ask our AI assistant..."}
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -175,12 +182,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 type="submit"
                 className="ml-2 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                Ask
+                {t('layout.Ask') || "Ask"}
               </button>
             </form>
 
             {user && (
               <div className="ml-4 flex items-center md:ml-6">
+                <button
+                  onClick={() => dispatch(toggleLanguage())}
+                  className="mr-4 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  {t('layout.SwitchLang')}
+                </button>
+
                 {user.profileImage ? (
                   <img
                     className="h-8 w-8 rounded-full object-cover"
@@ -208,10 +222,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         <main className="flex-1 p-4">
           {children}
-          {loading && <p className="mt-4 text-blue-600">🔄 Thinking...</p>}
+          {loading && <p className="mt-4 text-blue-600">🔄 {t('app.thinking') || "Thinking..."}</p>}
           {response && (
             <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded">
-              <strong>AI Assistant:</strong>
+              <strong>{t('app.aiLabel') || "AI Assistant:"}</strong>
               <p className="mt-2 text-gray-800 whitespace-pre-line">{response}</p>
             </div>
           )}

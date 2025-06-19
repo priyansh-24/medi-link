@@ -1,87 +1,81 @@
 import React, { useState } from 'react';
 import Layout from './Layout';
-import {Download, Printer, Clock, AlertCircle, CheckCircle, Pill } from 'lucide-react';
+import { Download, Printer, Clock, AlertCircle, CheckCircle, Pill } from 'lucide-react';
 import { getDatabase, ref, onValue } from "firebase/database";
 import { useEffect } from "react";
 import { getAuth } from "firebase/auth";
+import { useTranslation } from 'react-i18next';
 
-
- 
 const Prescriptions: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('current');
   const [currentPrescriptions, setCurrentPrescriptions] = useState<any[]>([]);
   const [pastPrescriptions, setPastPrescriptions] = useState<any[]>([]);
   const [medicationReminders, setMedicationReminders] = useState<any[]>([]);
 
- useEffect(() => {
-  const db = getDatabase();
-  const auth = getAuth();
-  const user = auth.currentUser;
+  useEffect(() => {
+    const db = getDatabase();
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-  if (!user) return;
+    if (!user) return;
 
-  const prescriptionRef = ref(db, `prescriptions/${user.uid}`);
-  onValue(prescriptionRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
+    const prescriptionRef = ref(db, `prescriptions/${user.uid}`);
+    onValue(prescriptionRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
 
-    const today = new Date();
-    const current: any[] = [];
-    const past: any[] = [];
-    const reminders: any[] = [];
+      const today = new Date();
+      const current: any[] = [];
+      const past: any[] = [];
+      const reminders: any[] = [];
 
-    Object.entries(data).forEach(([id, prescription]: any) => {
-      const expiry = new Date(prescription.expiryDate);
-      const isActive = expiry >= today;
+      Object.entries(data).forEach(([id, prescription]: any) => {
+        const expiry = new Date(prescription.expiryDate);
+        const isActive = expiry >= today;
 
-      const enriched = {
-        ...prescription,
-        id,
-        status: isActive ? "active" : "completed",
-        completedDate: !isActive ? expiry.toISOString().split("T")[0] : null
-      };
+        const enriched = {
+          ...prescription,
+          id,
+          status: isActive ? "active" : "completed",
+          completedDate: !isActive ? expiry.toISOString().split("T")[0] : null
+        };
 
-      if (isActive) {
-        current.push(enriched);
+        if (isActive) {
+          current.push(enriched);
 
-        // Collect today's reminders if 'schedule' is available
-        if (Array.isArray(prescription.schedule)) {
-          prescription.schedule.forEach((time: string) => {
-            reminders.push({
-              medication: `${prescription.medication} ${prescription.dosage}`,
-              time,
-              taken: false // Optional: You can load saved state from Firebase here
+          if (Array.isArray(prescription.schedule)) {
+            prescription.schedule.forEach((time: string) => {
+              reminders.push({
+                medication: `${prescription.medication} ${prescription.dosage}`,
+                time,
+                taken: false
+              });
             });
-          });
+          }
+        } else {
+          past.push(enriched);
         }
-      } else {
-        past.push(enriched);
-      }
+      });
+
+      setCurrentPrescriptions(current);
+      setPastPrescriptions(past);
+      setMedicationReminders(reminders);
     });
+  }, []);
 
-    // Update state
-    setCurrentPrescriptions(current);
-    setPastPrescriptions(past);
-    setMedicationReminders(reminders);
-  });
-}, []);
+  const handlePrint = () => window.print();
 
-
- 
-
-const handlePrint = () => window.print();
-
-const handleDownload = () => {
-  const blob = new Blob([JSON.stringify(medicationReminders, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'medication_reminders.json';
-  a.click();
-};
-
+  const handleDownload = () => {
+    const blob = new Blob([JSON.stringify(medicationReminders, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = t('prescriptions.downloadFilename') || 'medication_reminders.json';
+    a.click();
+  };
 
   const prescriptions = activeTab === 'current' ? currentPrescriptions : pastPrescriptions;
 
@@ -89,14 +83,14 @@ const handleDownload = () => {
     <Layout>
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-6">Prescriptions</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-6">{t('prescriptions.title')}</h1>
 
           {/* Today's Medication Reminders */}
           <div className="bg-white shadow rounded-lg mb-6">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900 flex items-center">
                 <Clock className="h-5 w-5 mr-2 text-blue-500" />
-                Today's Medication Schedule
+                {t('prescriptions.todaysSchedule')}
               </h3>
             </div>
             <div className="p-6">
@@ -145,7 +139,7 @@ const handleDownload = () => {
                               }
                               className="bg-blue-600 text-white text-xs px-3 py-1 rounded-md hover:bg-blue-700 transition"
                             >
-                              Mark
+                              {t('prescriptions.markButton')}
                             </button>
                           )}
                         </div>
@@ -154,13 +148,13 @@ const handleDownload = () => {
                   </div>
                 ))}
               </div>
-        </div>
-      </div>
+            </div>
+          </div>
 
-      {/* Prescription Tabs */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex">
+          {/* Prescription Tabs */}
+          <div className="bg-white shadow rounded-lg">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex">
                 <button
                   onClick={() => setActiveTab('current')}
                   className={`py-4 px-6 border-b-2 font-medium text-sm ${
@@ -169,7 +163,7 @@ const handleDownload = () => {
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  Current Prescriptions ({currentPrescriptions.length})
+                  {t('prescriptions.currentTab')} ({currentPrescriptions.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('past')}
@@ -179,7 +173,7 @@ const handleDownload = () => {
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  Past Prescriptions ({pastPrescriptions.length})
+                  {t('prescriptions.pastTab')} ({pastPrescriptions.length})
                 </button>
               </nav>
             </div>
@@ -197,21 +191,23 @@ const handleDownload = () => {
                           {prescription.medication} {prescription.dosage}
                         </h3>
                         <p className="text-gray-600">{prescription.frequency}</p>
-                        <p className="text-sm text-gray-500">Prescribed by {prescription.doctor}</p>
+                        <p className="text-sm text-gray-500">
+                          {t('prescriptions.prescribedBy')} {prescription.doctor}
+                        </p>
                       </div>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={handleDownload}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
-                        title="Download"
+                        title={t('prescriptions.downloadTitle')}
                       >
                         <Download className="h-5 w-5" />
                       </button>
                       <button
                         onClick={handlePrint}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
-                        title="Print"
+                        title={t('prescriptions.printTitle')}
                       >
                         <Printer className="h-5 w-5" />
                       </button>
@@ -220,30 +216,46 @@ const handleDownload = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Prescribed Date</p>
-                      <p className="text-gray-900">{new Date(prescription.prescribedDate).toLocaleDateString()}</p>
+                      <p className="text-sm font-medium text-gray-500">
+                        {t('prescriptions.prescribedDate')}
+                      </p>
+                      <p className="text-gray-900">
+                        {new Date(prescription.prescribedDate).toLocaleDateString()}
+                      </p>
                     </div>
                     {prescription.status === 'active' ? (
                       <>
                         <div>
-                          <p className="text-sm font-medium text-gray-500">Expires</p>
-                          <p className="text-gray-900">{new Date(prescription.expiryDate).toLocaleDateString()}</p>
+                          <p className="text-sm font-medium text-gray-500">
+                            {t('prescriptions.expires')}
+                          </p>
+                          <p className="text-gray-900">
+                            {new Date(prescription.expiryDate).toLocaleDateString()}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-500">Refills Left</p>
+                          <p className="text-sm font-medium text-gray-500">
+                            {t('prescriptions.refillsLeft')}
+                          </p>
                           <p className="text-gray-900">{prescription.refillsLeft}</p>
                         </div>
                       </>
                     ) : (
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Completed Date</p>
-                        <p className="text-gray-900">{new Date(prescription.completedDate!).toLocaleDateString()}</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          {t('prescriptions.completedDate')}
+                        </p>
+                        <p className="text-gray-900">
+                          {new Date(prescription.completedDate!).toLocaleDateString()}
+                        </p>
                       </div>
                     )}
                   </div>
 
                   <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Instructions</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      {t('prescriptions.instructionsTitle')}
+                    </h4>
                     <p className="text-gray-700 text-sm">{prescription.instructions}</p>
                   </div>
 
@@ -253,23 +265,27 @@ const handleDownload = () => {
                         {prescription.refillsLeft > 0 ? (
                           <div className="flex items-center text-green-600">
                             <CheckCircle className="h-4 w-4 mr-1" />
-                            <span className="text-sm">Refills available</span>
+                            <span className="text-sm">
+                              {t('prescriptions.refillsAvailable')}
+                            </span>
                           </div>
                         ) : (
                           <div className="flex items-center text-orange-600">
                             <AlertCircle className="h-4 w-4 mr-1" />
-                            <span className="text-sm">Contact doctor for refill</span>
+                            <span className="text-sm">
+                              {t('prescriptions.contactForRefill')}
+                            </span>
                           </div>
                         )}
                       </div>
                       <div className="flex space-x-2">
                         {prescription.refillsLeft >= 0 && (
                           <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                            Request Refill
+                            {t('prescriptions.requestRefill')}
                           </button>
                         )}
                         <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                          Contact Doctor
+                          {t('prescriptions.contactDoctor')}
                         </button>
                       </div>
                     </div>
@@ -281,23 +297,25 @@ const handleDownload = () => {
 
           {/* Prescription Summary */}
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-medium text-blue-900 mb-4">Prescription Management Tips</h3>
+            <h3 className="text-lg font-medium text-blue-900 mb-4">
+              {t('prescriptions.managementTips')}
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
               <div>
-                <p className="font-medium mb-1">📱 Set Reminders</p>
-                <p>Use medication reminders to never miss a dose</p>
+                <p className="font-medium mb-1">📱 {t('prescriptions.setReminders')}</p>
+                <p>{t('prescriptions.setRemindersDesc')}</p>
               </div>
               <div>
-                <p className="font-medium mb-1">🔄 Track Refills</p>
-                <p>Request refills before running out of medication</p>
+                <p className="font-medium mb-1">🔄 {t('prescriptions.trackRefills')}</p>
+                <p>{t('prescriptions.trackRefillsDesc')}</p>
               </div>
               <div>
-                <p className="font-medium mb-1">💊 Follow Instructions</p>
-                <p>Take medications exactly as prescribed</p>
+                <p className="font-medium mb-1">💊 {t('prescriptions.followInstructions')}</p>
+                <p>{t('prescriptions.followInstructionsDesc')}</p>
               </div>
               <div>
-                <p className="font-medium mb-1">👨‍⚕️ Consult Doctor</p>
-                <p>Contact your doctor with any concerns or side effects</p>
+                <p className="font-medium mb-1">👨‍⚕️ {t('prescriptions.consultDoctor')}</p>
+                <p>{t('prescriptions.consultDoctorDesc')}</p>
               </div>
             </div>
           </div>
