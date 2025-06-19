@@ -5,9 +5,17 @@ import { getDatabase, ref, onValue } from "firebase/database";
 import { useEffect } from "react";
 import { getAuth } from "firebase/auth";
 import { useTranslation } from 'react-i18next';
+import { QRCodeSVG } from 'qrcode.react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+
 
 const Prescriptions: React.FC = () => {
   const { t } = useTranslation();
+  const [showQR, setShowQR] = useState(false);
+  const [qrData, setQRData] = useState('');
   const [activeTab, setActiveTab] = useState('current');
   const [currentPrescriptions, setCurrentPrescriptions] = useState<any[]>([]);
   const [pastPrescriptions, setPastPrescriptions] = useState<any[]>([]);
@@ -66,16 +74,127 @@ const Prescriptions: React.FC = () => {
 
   const handlePrint = () => window.print();
 
-  const handleDownload = () => {
-    const blob = new Blob([JSON.stringify(medicationReminders, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = t('prescriptions.downloadFilename') || 'medication_reminders.json';
-    a.click();
+  const uploadPrescriptionToFirebase = async (blob: Blob, filename: string): Promise<string> => {
+  const storage = getStorage();
+  const fileRef = storageRef(storage, `prescriptions/${filename}`);
+  await uploadBytes(fileRef, blob);
+  const url = await getDownloadURL(fileRef);
+  return url;
+};
+const handleDownloadAndGenerateQR = (prescription: any) => {
+  const doc = new jsPDF();
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(33, 150, 243);
+  doc.text('MediLink', 10, 20);
+
+  doc.setFontSize(16);
+  doc.setTextColor(40, 40, 40);
+  doc.text('Prescription', 10, 30);
+
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Doctor: ${prescription.doctor || 'N/A'}`, 10, 45);
+  doc.text(`Prescribed Date: ${new Date(prescription.prescribedDate).toLocaleDateString()}`, 10, 52);
+  doc.text(`Expires On: ${new Date(prescription.expiryDate).toLocaleDateString()}`, 10, 59);
+
+  autoTable(doc, {
+    startY: 70,
+    head: [['Medication', 'Dosage', 'Frequency', 'Instructions']],
+    body: [
+      [
+        prescription.medication || 'N/A',
+        prescription.dosage || 'N/A',
+        prescription.frequency || 'N/A',
+        prescription.instructions || 'N/A',
+      ],
+    ],
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+  });
+
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+
+  setQRData(blobUrl);
+  setShowQR(true);
+};
+
+ const handleDownload = (prescription: any) => {
+  const doc = new jsPDF();
+
+  // Heading: MediLink Prescription
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(33, 150, 243); // Blue color
+  doc.text('MediLink', 10, 20);
+
+  doc.setFontSize(16);
+  doc.setTextColor(40, 40, 40);
+  doc.text('Prescription', 10, 30);
+
+  // Doctor & Prescription Info
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Doctor: ${prescription.doctor || 'N/A'}`, 10, 45);
+  doc.text(`Prescribed Date: ${new Date(prescription.prescribedDate).toLocaleDateString()}`, 10, 52);
+  doc.text(`Expires On: ${new Date(prescription.expiryDate).toLocaleDateString()}`, 10, 59);
+  doc.text(`Refills Left: ${prescription.refillsLeft ?? '-'}`, 10, 66);
+
+  // Add Medication Table
+  autoTable(doc, {
+    startY: 75,
+    head: [['Medication', 'Dosage', 'Frequency', 'Instructions']],
+    body: [
+      [
+        prescription.medication || 'N/A',
+        prescription.dosage || 'N/A',
+        prescription.frequency || 'N/A',
+        prescription.instructions || 'N/A',
+      ],
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 5,
+    },
+    headStyles: {
+      fillColor: [33, 150, 243],
+      textColor: 255,
+      fontStyle: 'bold',
+    },
+    bodyStyles: {
+      textColor: 50,
+    },
+  });
+
+  // Footer Note
+  const pageHeight = doc.internal.pageSize.height;
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(
+    'Note: Please take medication as prescribed. Contact your doctor for any concerns.',
+    10,
+    pageHeight - 20
+  );
+
+  doc.save(`${prescription.medication || 'prescription'}.pdf`);
+};
+
+const handleQR = (prescription: any) => {
+  const data = {
+    medication: prescription.medication,
+    dosage: prescription.dosage,
+    doctor: prescription.doctor,
+    prescribedDate: prescription.prescribedDate,
+    expiryDate: prescription.expiryDate,
   };
+  setQRData(JSON.stringify(data));
+  setShowQR(true);
+};
+
 
   const prescriptions = activeTab === 'current' ? currentPrescriptions : pastPrescriptions;
 
@@ -198,7 +317,17 @@ const Prescriptions: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={handleDownload}
+                        onClick={() => handleDownloadAndGenerateQR(prescription)}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+                        title="Generate QR"
+                      >
+                        {/* QR Icon (simple SVG) */}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M3 3h4v4H3V3zM3 9h4v4H3V9zM9 3h4v4H9V3zM15 3h2v2h-2V3zM9 9h4v4H9V9zM15 9h2v2h-2V9zM9 15h4v4H9v-4zM15 15h2v2h-2v-2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDownload(prescription)}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
                         title={t('prescriptions.downloadTitle')}
                       >
@@ -321,6 +450,37 @@ const Prescriptions: React.FC = () => {
           </div>
         </div>
       </div>
+{showQR && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">📲 Scan QR to Download</h2>
+
+      <div className="flex justify-center mb-4">
+        <QRCodeSVG value={qrData} size={200} />
+      </div>
+
+      <a
+        href={qrData}
+        download="prescription.pdf"
+        className="inline-block mb-3 text-sm text-blue-600 hover:underline"
+      >
+        🔗 Open PDF Link
+      </a>
+
+      <div className="flex justify-center gap-3">
+        <button
+          onClick={() => setShowQR(false)}
+          className="px-4 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
     </Layout>
   );
 };
