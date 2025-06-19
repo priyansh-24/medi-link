@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
-import { Clock, Stethoscope, MapPin, Star, Bot, Upload, X } from 'lucide-react';
+import { Clock, Stethoscope, MapPin, Star, Bot, Upload, X, Mic, MicOff } from 'lucide-react';
 import { ref, push, onValue } from 'firebase/database';
 import { auth, db } from './lib/Firebase';
 
@@ -11,7 +11,7 @@ const BookAppointment: React.FC = () => {
   const [appointmentData, setAppointmentData] = useState({
     specialty: '',
     symptoms: '',
-    photoURL: '', 
+    photoURL: '',
     urgency: '',
     preferredDate: '',
     preferredTime: '',
@@ -19,6 +19,12 @@ const BookAppointment: React.FC = () => {
   });
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [imageError, setImageError] = useState('');
+  const [isVoiceAssistantOn, setIsVoiceAssistantOn] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [assistantMessage, setAssistantMessage] = useState('');
+  const recognitionRef = useRef<any>(null);
+  const sleepTimerRef = useRef<any>(null);
+  const speechSynthesisRef = useRef<any>(null);
 
   const specialties = [
     { id: 'general', name: 'General Medicine', description: 'General health checkups and common conditions' },
@@ -75,6 +81,90 @@ const BookAppointment: React.FC = () => {
     }
   }, [appointmentData.specialty, allDoctors]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Initialize Speech Recognition
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = 'en-US';
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = Array.from(event.results)
+            .map((result: any) => result[0])
+            .map((result) => result.transcript)
+            .join('');
+          
+          handleVoiceCommand(transcript);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Voice recognition error', event.error);
+          setIsListening(false);
+          setAssistantMessageWithSpeech('Sorry, I had trouble hearing you. Please try again.');
+        };
+
+        recognitionRef.current.onend = () => {
+          if (isVoiceAssistantOn && isListening) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              console.error('Failed to restart recognition:', e);
+            }
+          }
+        };
+      }
+
+      // Initialize Speech Synthesis
+      speechSynthesisRef.current = window.speechSynthesis;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (sleepTimerRef.current) {
+        clearTimeout(sleepTimerRef.current);
+      }
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    };
+  }, [step, appointmentData, isVoiceAssistantOn, isListening]);
+
+  const speakMessage = (message: string) => {
+    if (!isVoiceAssistantOn || !speechSynthesisRef.current) return;
+    
+    speechSynthesisRef.current.cancel();
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    speechSynthesisRef.current.speak(utterance);
+  };
+
+  const setAssistantMessageWithSpeech = (message: string) => {
+    setAssistantMessage(message);
+    speakMessage(message);
+  };
+
+  const resetSleepTimer = () => {
+    if (sleepTimerRef.current) {
+      clearTimeout(sleepTimerRef.current);
+    }
+    sleepTimerRef.current = setTimeout(() => {
+      if (isListening) {
+        setAssistantMessageWithSpeech("I'm going to sleep now. Say 'Hey Assistant' to wake me up.");
+        setIsListening(false);
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
+      }
+    }, 60000); // 60 seconds of inactivity
+  };
+
   const calculateMatchPercentage = (doctor: any) => {
     let match = 50;
     if (doctor.specialty.toLowerCase().includes(appointmentData.specialty.toLowerCase())) {
@@ -90,27 +180,32 @@ const BookAppointment: React.FC = () => {
 
   const handleNext = () => {
     if (step < 4) setStep(step + 1);
+    if (isVoiceAssistantOn) {
+      setAssistantMessageWithSpeech(getStepInstructions());
+      resetSleepTimer();
+    }
   };
 
   const handleBack = () => {
     if (step > 1) setStep(step - 1);
+    if (isVoiceAssistantOn) {
+      setAssistantMessageWithSpeech(getStepInstructions());
+      resetSleepTimer();
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset previous errors
     setImageError('');
 
-    // Validate file type
     if (!file.type.match('image.*')) {
       setImageError('Please upload an image file (JPEG, PNG)');
       return;
     }
 
-    // Validate file size (max 500KB for Base64)
-    const MAX_SIZE = 500 * 1024; // 500KB
+    const MAX_SIZE = 500 * 1024;
     if (file.size > MAX_SIZE) {
       setImageError('Image size should be less than 500KB');
       return;
@@ -149,33 +244,16 @@ const BookAppointment: React.FC = () => {
       return;
     }
 
-    // Compress the appointment data to fit Firebase limits
-    const bookingData: {
-      specialty: string;
-      symptoms: string;
-      urgency: string;
-      preferredDate: string;
-      preferredTime: string;
-      doctorId: string;
-      timestamp: string;
-      photoURL?: string;
-    } = {
+    const bookingData = {
       specialty: appointmentData.specialty,
       symptoms: appointmentData.symptoms,
       urgency: appointmentData.urgency,
       preferredDate: appointmentData.preferredDate,
       preferredTime: appointmentData.preferredTime,
       doctorId: appointmentData.doctorId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...(appointmentData.photoURL && appointmentData.photoURL.length < 900000 && { photoURL: appointmentData.photoURL })
     };
-
-    // Only include photoURL if it exists and is small enough
-    if (appointmentData.photoURL && appointmentData.photoURL.length < 900000) { // ~900KB Firebase limit
-      bookingData.photoURL = appointmentData.photoURL;
-    } else if (appointmentData.photoURL) {
-      alert('Image is too large to store. Please upload a smaller image or proceed without it.');
-      return;
-    }
 
     const bookingRef = ref(db, `bookings/${user.uid}`);
     try {
@@ -187,10 +265,207 @@ const BookAppointment: React.FC = () => {
     }
   };
 
+  const handleVoiceCommand = (command: string) => {
+    const lowerCommand = command.toLowerCase();
+    
+    // Wake word detection
+    if (lowerCommand.includes('hey assistant') || lowerCommand.includes('hi assistant')) {
+      if (!isListening) {
+        setIsListening(true);
+        if (recognitionRef.current) {
+          recognitionRef.current.start();
+        }
+        setAssistantMessageWithSpeech("I'm listening now. How can I help you?");
+        resetSleepTimer();
+      }
+      return;
+    }
+
+    // Only process commands if listening
+    if (!isListening) return;
+
+    resetSleepTimer();
+
+    if (lowerCommand.includes('next') || lowerCommand.includes('continue')) {
+      handleNext();
+    } else if (lowerCommand.includes('back') || lowerCommand.includes('previous')) {
+      handleBack();
+    } else if (step === 1) {
+      if (lowerCommand.includes('symptoms are')) {
+        const symptoms = command.split('symptoms are')[1].trim();
+        setAppointmentData({ ...appointmentData, symptoms });
+        setAssistantMessageWithSpeech(`Got it. Your symptoms are: ${symptoms}. Now please select a specialty.`);
+      } else if (lowerCommand.includes('specialty')) {
+        const specialty = specialties.find(s => 
+          lowerCommand.includes(s.name.toLowerCase()) || 
+          lowerCommand.includes(s.id.toLowerCase())
+        );
+        if (specialty) {
+          setAppointmentData({ ...appointmentData, specialty: specialty.id });
+          setAssistantMessageWithSpeech(`Selected specialty: ${specialty.name}. You can say "next" to continue.`);
+        }
+      }
+    } else if (step === 2) {
+      const urgency = urgencyLevels.find(level => 
+        lowerCommand.includes(level.name.toLowerCase()) || 
+        lowerCommand.includes(level.id.toLowerCase())
+      );
+      if (urgency) {
+        setAppointmentData({ ...appointmentData, urgency: urgency.id });
+        setAssistantMessageWithSpeech(`Selected urgency level: ${urgency.name}. You can say "next" to continue.`);
+      }
+    } else if (step === 3) {
+      if (lowerCommand.includes('date')) {
+        const dateMatch = command.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/) || 
+                         command.match(/\d{1,2}-\d{1,2}-\d{2,4}/) ||
+                         command.match(/\d{1,2} \d{1,2} \d{2,4}/);
+        if (dateMatch) {
+          const dateStr = dateMatch[0].replace(/-/g, '/').replace(/ /g, '/');
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            const formattedDate = date.toISOString().split('T')[0];
+            setAppointmentData({ ...appointmentData, preferredDate: formattedDate });
+            setAssistantMessageWithSpeech(`Selected date: ${formattedDate}. Now please select a time.`);
+          }
+        }
+      } else if (lowerCommand.includes('time')) {
+        const timeMatch = command.match(/\d{1,2}:\d{2}/) || 
+                         command.match(/\d{1,2} \d{2}/) ||
+                         command.match(/\d{1,2}(am|pm)/i);
+        if (timeMatch) {
+          let timeStr = timeMatch[0].replace(/ /g, ':');
+          if (!timeStr.includes(':')) {
+            const ampm = timeStr.match(/am|pm/i)?.[0] || '';
+            const digits = timeStr.replace(/am|pm/i, '');
+            timeStr = digits + (ampm ? ' ' + ampm : '');
+          }
+          setAppointmentData({ ...appointmentData, preferredTime: timeStr });
+          setAssistantMessageWithSpeech(`Selected time: ${timeStr}. You can say "next" to continue.`);
+        }
+      }
+    } else if (step === 4) {
+      if (lowerCommand.includes('doctor') || lowerCommand.includes('select')) {
+        const doctorMatch = aiRecommendedDoctors.find(doc => 
+          lowerCommand.includes(doc.name.toLowerCase())
+        );
+        if (doctorMatch) {
+          setAppointmentData({ ...appointmentData, doctorId: doctorMatch.id });
+          setAssistantMessageWithSpeech(`Selected doctor: ${doctorMatch.name}. You can say "book appointment" to confirm.`);
+        }
+      } else if (lowerCommand.includes('book') || lowerCommand.includes('confirm')) {
+        handleBooking();
+      }
+    }
+  };
+
+  const toggleVoiceAssistant = () => {
+    if (!isVoiceAssistantOn) {
+      setIsVoiceAssistantOn(true);
+      setIsListening(true);
+      const welcomeMessage = `Welcome to the voice assistant. I'll help you book your appointment. 
+        ${getStepInstructions()}`;
+      setAssistantMessageWithSpeech(welcomeMessage);
+      
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          resetSleepTimer();
+        } catch (e) {
+          setAssistantMessageWithSpeech('Could not start voice recognition. Please check your microphone permissions.');
+          setIsListening(false);
+        }
+      } else {
+        setAssistantMessageWithSpeech('Voice recognition not supported in your browser. Try Chrome or Edge.');
+        setIsListening(false);
+      }
+    } else {
+      setIsVoiceAssistantOn(false);
+      setIsListening(false);
+      setAssistantMessage('');
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (sleepTimerRef.current) {
+        clearTimeout(sleepTimerRef.current);
+      }
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    }
+  };
+
+  const getStepInstructions = () => {
+    switch (step) {
+      case 1:
+        return `Please describe your symptoms and select a specialty. 
+                You can say things like "My symptoms are headache and fever" 
+                or "I need a dermatologist".`;
+      case 2:
+        return `Please select how urgent your appointment is. 
+                You can say "routine care", "soon", "urgent", or "emergency".`;
+      case 3:
+        return `Please select a date and time for your appointment. 
+                You can say things like "date is June 15th" or "time is 2:30 PM".`;
+      case 4:
+        return `Please select a doctor from the recommendations. 
+                You can say "select doctor" followed by the doctor's name. 
+                Or say "book appointment" to confirm.`;
+      default:
+        return '';
+    }
+  };
+
+  useEffect(() => {
+    if (isVoiceAssistantOn) {
+      setAssistantMessageWithSpeech(getStepInstructions());
+    }
+  }, [step, isVoiceAssistantOn]);
+
   return (
     <Layout>
       <div className="py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={toggleVoiceAssistant}
+              className={`flex items-center px-4 py-2 rounded-full transition-all ${
+                isVoiceAssistantOn 
+                  ? isListening 
+                    ? 'bg-green-600 text-white hover:bg-green-700' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {isVoiceAssistantOn ? (
+                isListening ? (
+                  <Mic className="h-5 w-5 mr-2" />
+                ) : (
+                  <MicOff className="h-5 w-5 mr-2" />
+                )
+              ) : (
+                <MicOff className="h-5 w-5 mr-2" />
+              )}
+              {isVoiceAssistantOn ? 
+                (isListening ? 'Listening...' : 'Voice Assistant ON') : 
+                'Voice Assistant'}
+              {isListening && (
+                <span className="ml-2 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
+              )}
+            </button>
+          </div>
+
+          {isVoiceAssistantOn && assistantMessage && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-fade-in">
+              <div className="flex">
+                <Bot className="h-6 w-6 text-blue-600 mr-3 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-blue-800">Voice Assistant</p>
+                  <p className="text-blue-700">{assistantMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mb-8">
             <h1 className="text-2xl font-semibold text-gray-900">Book an Appointment</h1>
             <div className="mt-4 flex items-center">
@@ -220,7 +495,6 @@ const BookAppointment: React.FC = () => {
           </div>
 
           <div className="bg-white shadow rounded-lg p-6">
-            {/* Step 1: Symptoms and Specialty */}
             {step === 1 && (
               <div className="space-y-6">
                 <div>
@@ -309,7 +583,6 @@ const BookAppointment: React.FC = () => {
               </div>
             )}
 
-            {/* Step 2: Urgency Level */}
             {step === 2 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900">How urgent is this appointment?</h3>
@@ -339,7 +612,6 @@ const BookAppointment: React.FC = () => {
               </div>
             )}
 
-            {/* Step 3: Date and Time Preference */}
             {step === 3 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900">When would you like to schedule?</h3>
@@ -379,7 +651,6 @@ const BookAppointment: React.FC = () => {
               </div>
             )}
             
-            {/* Step 4: AI Doctor Recommendations */}
             {step === 4 && (
               <div className="space-y-6">
                 <div className="flex items-center mb-6">
@@ -461,7 +732,6 @@ const BookAppointment: React.FC = () => {
               </div>
             )}
 
-            {/* Navigation Buttons */}
             <div className="flex justify-between mt-8">
               <button
                 onClick={handleBack}
