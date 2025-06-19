@@ -190,10 +190,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div className="ml-4 flex items-center md:ml-6">
                 <button
                   onClick={() => dispatch(toggleLanguage())}
-                  className="mr-4 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                  className="mr-4 ml-1 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  aria-label="Switch Language"
                 >
-                  {t('layout.SwitchLang')}
+                  {t('layout.SwitchLang', { defaultValue: 'Switch Language' })}
                 </button>
+
 
                 {user.profileImage ? (
                   <img
