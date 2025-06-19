@@ -11,7 +11,7 @@ const BookAppointment: React.FC = () => {
   const [appointmentData, setAppointmentData] = useState({
     specialty: '',
     symptoms: '',
-    photoURL: '', // Stores Base64 image string
+    photoURL: '', 
     urgency: '',
     preferredDate: '',
     preferredTime: '',
