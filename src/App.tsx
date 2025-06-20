@@ -9,6 +9,7 @@ import DoctorProfile from './components/DoctorProfile';
 import VideoCall from './components/VideoCall';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import DoctorDashboard from './components/docter-dashboard';
 
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/doctor-dashboard" element={<ProtectedRoute><DoctorDashboard /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><PatientProfile /></ProtectedRoute>} />
             <Route path="/emergency" element={<ProtectedRoute><EmergencyServices /></ProtectedRoute>} />
